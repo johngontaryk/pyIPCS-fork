@@ -1,4 +1,5 @@
 dsname
+IPCSVERS
 MYUSER
 nodsname
 rfind
