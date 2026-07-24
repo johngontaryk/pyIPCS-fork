@@ -58,35 +58,35 @@ class IpcsSession:
 
         # Set session data set
         if driver is not None:
-            self._dsname = driver.strip()
+            self._driver = driver.strip()
         else:
-            self._dsname = default_driver_dsname()
+            self._driver = default_driver_dsname()
 
         if isinstance(allocations, IpcsAllocation):
             allocations = [allocations]
         self._allocations = copy.deepcopy(list(allocations))
 
         # Allocation for session data set
-        self._session_allocation = IpcsAllocation("PYIPCS", [self._dsname])
+        self._session_allocation = IpcsAllocation("PYIPCS", [self._driver])
 
-        if check_dataset_exists(self._dsname):
-            # If session data set does exist, 
+        if check_dataset_exists(self._driver):
+            # If session data set does exist,
             # verify we are using the same pyIPCS version
             response = tso_cmd(
-                cmd=f"ex \'{self._dsname}(IPCSVERS)\'",
+                cmd=f"ex \'{self._driver}(IPCSVERS)\'",
                 allocations=self._session_allocation,
             )
             if response["rc"] != 0 or f"PYIPCS={__version__}" not in response["output"]:
                 raise TsoError(
-                    f"pyIPCS driver data set {self._dsname} already exists and is invalid or does not match the current pyIPCS version"
+                    f"pyIPCS driver data set {self._driver} already exists and is invalid or does not match the current pyIPCS version"
                 )
         else:
             # If session data set does not exist, create it
-            create_driver(self._dsname)
+            create_driver(self._driver)
 
     @property
-    def dsname(self) -> str:
-        return self._dsname
+    def driver(self) -> str:
+        return self._driver
 
     def get_allocations(self) -> list[IpcsAllocation]:
         """
@@ -234,7 +234,7 @@ class IpcsSession:
             subcmd += " " + (setdef_parms if isinstance(setdef_parms, str) else " ".join(setdef_parms))
         return ipcs_subcmd(
             subcmd=subcmd,
-            driver=self._dsname,
+            driver=self._driver,
             ddir=self._ddir,
             allocations=self.get_allocations(),
         )
@@ -270,7 +270,10 @@ class IpcsSession:
         ------
         DdirNotSet
             If no DDIR has been set for this session.
+        ValueError
+            If the data set does not exist.
         """
+        assert_dataset_exists(dsname)
         return self.setdef_global(setdef_parms=f"DSNAME({dsname})")
 
     def run(
@@ -328,10 +331,13 @@ class IpcsSession:
         ------
         DdirNotSet
             If no DDIR has been set for this session.
+        ValueError
+            If the ``source`` data set is specified and does not exist.
         """
         if self._ddir is None:
             raise DdirNotSet()
         if source is not None:
+            assert_dataset_exists(source)
             dsname_parm = f"DSNAME({source})"
             if setdef_parms is None:
                 setdef_parms = dsname_parm
@@ -341,7 +347,7 @@ class IpcsSession:
                 setdef_parms = list(setdef_parms) + [dsname_parm]
         return ipcs_subcmd(
             subcmd=subcmd,
-            driver=self._dsname,
+            driver=self._driver,
             ddir=self._ddir,
             allocations=self.get_allocations(),
             authorized=authorized,
