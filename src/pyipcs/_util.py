@@ -76,9 +76,9 @@ def check_dataset_exists(dsname: str) -> bool:
     if "*" in dsname:
         raise ValueError(f"Data set name {dsname} cannot be a pattern (cannot include '*')")
     _attempt_recall(dsname)
-    return datasets.exists()
+    return datasets.exists(dsname)
 
-def assert_dataset_exists(dsname: str) -> bool:
+def assert_dataset_exists(dsname: str) -> None:
     """
     Attempt recall and throw error if data set does not exist.
 
@@ -88,7 +88,7 @@ def assert_dataset_exists(dsname: str) -> bool:
 
     Returns
     -------
-    bool
+    None
 
     Raises
     ------
@@ -98,7 +98,7 @@ def assert_dataset_exists(dsname: str) -> bool:
     if "*" in dsname:
         raise ValueError(f"Data set name {dsname} cannot be a pattern (cannot include '*')")
     _attempt_recall(dsname)
-    if not datasets.exists():
+    if not datasets.exists(dsname):
         raise ValueError(f"Data set {dsname} does not exist")
 
 
