@@ -79,11 +79,11 @@ def ipcs_subcmd(
     escaped_subcmd = subcmd.strip().replace("'", "''''")
     cmd = f"ex '{driver}(IPCSRUN)' 'SUBCMD(''{escaped_subcmd}'')'"
 
-    # Construct SETDEF LOCAL NOLIST subcommand to run before specified subcommand
+    # Construct full SETDEF LOCAL NOLIST subcommand to run before specified subcommand
     if setdef_parms is not None:
         setdef_str = setdef_parms if isinstance(setdef_parms, str) else " ".join(setdef_parms)
         escaped_setdef = setdef_str.replace("'", "''''")
-        cmd += f" 'SETDEFPARMS(''{escaped_setdef}'')'"
+        cmd += f" 'SETDEFL(''SETDEF NOLIST LOCAL {escaped_setdef}'')'"
 
     shell_script = tso_shell_script(
         cmd=cmd,
