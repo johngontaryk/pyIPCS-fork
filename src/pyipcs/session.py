@@ -183,7 +183,7 @@ class IpcsSession:
         if self._ddir is not None and self._temp_ddir:
             self.delete_ddir()
         # Run BLSCDDIR CLIST
-        cmd = f"%BLSCDDIR DSNAME({dsname})"
+        cmd = f"%BLSCDDIR DSNAME('{dsname}')"
         if parms is not None:
             if not isinstance(parms, str):
                 parms = " ".join(parms)
@@ -363,7 +363,7 @@ class IpcsSession:
         DdirNotSet
             If no DDIR has been set for this session.
         """
-        return self.run(f"DROPDUMP DSNAME({dsname})")
+        return self.run(f"DROPDUMP DSNAME('{dsname}')")
 
     def setdef_global(
         self,
@@ -402,7 +402,7 @@ class IpcsSession:
             raise DdirNotSet()
         subcmd = "SETDEF LIST GLOBAL"
         if dump is not None:
-            subcmd += f" DSNAME({dump.dsname})"
+            subcmd += f" DSNAME('{dump.dsname}')"
         if setdef_parms is not None:
             if not isinstance(setdef_parms, str):
                 setdef_parms = " ".join(setdef_parms)
@@ -468,7 +468,7 @@ class IpcsSession:
         if self._ddir is None:
             raise DdirNotSet()
         if dump is not None:
-            dsname_parm = f"DSNAME({dump.dsname})"
+            dsname_parm = f"DSNAME('{dump.dsname}')"
             if setdef_parms is None:
                 setdef_parms = dsname_parm
             elif isinstance(setdef_parms, str):
