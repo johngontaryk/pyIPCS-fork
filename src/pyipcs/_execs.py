@@ -27,6 +27,20 @@ SET &RC = &LASTCC
 EXIT CODE(&RC)
 """
 
+# IPCSSRC - REXX to list all source descriptions in the current DDIR via EVALDUMP
+IPCSSRC = """/* REXX */
+ADDRESS IPCS
+
+/* Get the first source description in the current DDIR */
+"EVALDUMP REXX(DSNAME(dsn) RETCODE(evrc))"
+do while evrc = 0
+  "NOTE '"dsn"' ASIS"
+  /* Advance to the next source description */
+  "EVALDUMP NEXT REXX(DSNAME(dsn) RETCODE(evrc))"
+end
+
+EXIT 0
+"""
 
 # IPCS Driver - REXX to run evaluate
 IPCSEVAL = """/* REXX */

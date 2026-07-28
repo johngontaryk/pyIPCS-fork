@@ -39,29 +39,29 @@ class TsoInvalidReturnCodeError(TsoError):
     TSO/E error for an invalid return code from a TSO command.
     """
 
-    def __init__(self, response: dict) -> None:
+    def __init__(self, response) -> None:
         """
         Constructor for TsoInvalidReturnCodeError.
 
         Parameters
         ----------
-        response : dict
-            TSO reponse.
+        response : TsoResponse
+            TSO response.
 
         Returns
         -------
         None
         """
-        self._response: dict = response
+        self._response = response
         super().__init__(
-            f"TSO command {response['cmd']} "
-            f"(authorized={response['authorized']}) "
-            f"exited with an invalid return code {response['rc']}.\n"
-            f"[TSO OUTPUT]:\n{response['output']}"
+            f"TSO command {response.cmd} "
+            f"(authorized={response.authorized}) "
+            f"exited with an invalid return code {response.rc}.\n"
+            f"[TSO OUTPUT]:\n{response.output}"
         )
 
     @property
-    def response(self) -> dict:
+    def response(self):
         return self._response
 
 

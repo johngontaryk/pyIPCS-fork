@@ -8,12 +8,13 @@ from typing import Optional
 from pyipcs.allocation import IpcsAllocation
 from pyipcs._tso_shell_script import tso_shell_script
 from pyipcs.exceptions import TsoError
+from pyipcs.response import TsoResponse
 
 
 def tso_cmd(
     cmd: str,
     allocations: Optional[IpcsAllocation | list[IpcsAllocation]] = None,
-) -> dict:
+) -> TsoResponse:
     """
     Run a TSO/E command.
 
@@ -28,12 +29,7 @@ def tso_cmd(
 
     Returns
     -------
-    dict
-        Dictionary with keys:
-
-        - ``cmd`` : str — the TSO/E command that was run.
-        - ``rc`` : int — return code of the TSO command.
-        - ``output`` : str — output from the TSO/E command.
+    TsoResponse
     """
     if allocations is None:
         allocations = []
@@ -66,8 +62,9 @@ def tso_cmd(
         tmp_file.seek(0)
         output = tmp_file.read()
 
-    return {
-        "cmd": cmd,
-        "rc": completed_process.returncode,
-        "output": output,
-    }
+    return TsoResponse(
+        cmd=cmd,
+        rc=completed_process.returncode,
+        output=output,
+        authorized=True,
+    )

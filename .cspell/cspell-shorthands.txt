@@ -1,4 +1,5 @@
 dsname
+IPCSSRC
 IPCSVERS
 MYUSER
 nodsname

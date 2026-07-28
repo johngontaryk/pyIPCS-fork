@@ -2,11 +2,26 @@
 Internal Utility Functions
 """
 
-from zoautil_py import datasets
-from .allocation import IpcsAllocation
+import os
+from zoautil_py import datasets, zoau_io
 from ._tso import tso_cmd
+from .allocation import IpcsAllocation
+from .exceptions import TsoError
 
-def _attempt_recall(dsname: str):
+def tso_profile_prefix() -> str:
+    """
+    Return the TSO profile prefix (high-level qualifier).
+
+    Returns
+    -------
+    str
+        TSO profile prefix, or the USER environment variable if unavailable,
+        or ``"TEMP"`` as a last resort.
+    """
+    return datasets.get_hlq() if datasets.get_hlq() else os.getenv("USER", "TEMP")
+
+
+def attempt_recall(dsname: str) -> None:
     """
     Use automatic recall to attempt to recall a data set.
 
@@ -24,7 +39,7 @@ def _attempt_recall(dsname: str):
         allocations=IpcsAllocation("PYIPCS", dsname)
     )
 
-def get_dataset(dsname: str) -> datasets.Dataset:
+def get_dataset(dsname: str) -> datasets.Dataset | None:
     """
     Get specific Dataset object from dataset name.
 
@@ -36,17 +51,13 @@ def get_dataset(dsname: str) -> datasets.Dataset:
 
     Returns
     -------
-    zoautil_py.datasets.Dataset
-
-    Raises
-    ------
-    ValueError
-        If data set name is invalid or the data set does not exist.
+    zoautil_py.datasets.Dataset or None
+        Data set object or ``None`` if the data set does not exist.
     """
     if "*" in dsname:
         raise ValueError(f"Data set name {dsname} cannot be a pattern (cannot include '*')")
     
-    _attempt_recall(dsname)
+    attempt_recall(dsname)
     dataset_list = datasets.list_datasets(dsname.strip())
 
     for dataset_obj in dataset_list:
@@ -75,7 +86,7 @@ def check_dataset_exists(dsname: str) -> bool:
     """
     if "*" in dsname:
         raise ValueError(f"Data set name {dsname} cannot be a pattern (cannot include '*')")
-    _attempt_recall(dsname)
+    attempt_recall(dsname)
     return datasets.exists(dsname)
 
 def assert_dataset_exists(dsname: str) -> None:
@@ -92,15 +103,27 @@ def assert_dataset_exists(dsname: str) -> None:
 
     Raises
     ------
-    ValueError
+    TsoError
         If data set name is invalid or the data set does not exist.
     """
     if "*" in dsname:
         raise ValueError(f"Data set name {dsname} cannot be a pattern (cannot include '*')")
-    _attempt_recall(dsname)
+    attempt_recall(dsname)
     if not datasets.exists(dsname):
-        raise ValueError(f"Data set {dsname} does not exist")
+        raise TsoError(f"Data set {dsname} does not exist")
 
+def get_header_record(dsname: str) -> bytes:
+    """
+    Get z/OS dump 
 
+    Parameters
+    ----------
+    dsname : str
+
+    Returns
+    -------
+    bytes
+    """
+    pass
 
 

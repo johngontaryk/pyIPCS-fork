@@ -8,6 +8,7 @@ from typing import IO, Iterable, Optional
 from pyipcs.allocation import IpcsAllocation
 from pyipcs._tso_shell_script import tso_shell_script
 from pyipcs.exceptions import TsoError
+from pyipcs.response import IpcsResponse
 
 
 def ipcs_subcmd(
@@ -18,7 +19,7 @@ def ipcs_subcmd(
     authorized: bool = True,
     setdef_parms: Optional[str | Iterable[str]] = None,
     output: Optional[IO[str]] = None,
-) -> dict:
+) -> IpcsResponse:
     """
     Run an IPCS subcommand.
 
@@ -53,27 +54,24 @@ def ipcs_subcmd(
 
     output : file object, optional
         An open, writable text file object. When provided, subcommand output is
-        to this file instead of being returned as a string 
-        (``"output"`` will be ``None``in returned dict).
+        to this file instead of being returned as a string
+        (``output`` attribute will be ``None`` in returned ``IpcsResponse``).
         Default is None.
 
     Returns
     -------
-    dict
-        Dictionary with keys:
-
-        - ``subcmd`` : str — the IPCS subcommand that was run.
-        - ``rc`` : int — return code of the IPCS subcommand.
-        - ``output`` : str or None — output from the IPCS subcommand,
-          or ``None`` if a file object was provided via ``output``.
-        - ``authorized`` : bool — whether the subcommand ran in an authorized environment.
+    IpcsResponse
     """
     if allocations is None:
         allocations = []
     elif isinstance(allocations, IpcsAllocation):
         allocations = [allocations]
 
-    allocations = allocations + [IpcsAllocation("IPCSDDIR", [ddir])]
+    allocations = (
+        allocations + 
+        [IpcsAllocation("IPCSDDIR", [ddir])] +
+        [IpcsAllocation("PYIPCS", [driver])]
+    )
 
     # Construct IPCS subcommand
     escaped_subcmd = subcmd.strip().replace("'", "''''")
@@ -125,9 +123,9 @@ def ipcs_subcmd(
             # If no file object was provided read in rest of IPCS subcommand output
             subcmd_output = tmp_file.read()
 
-    return {
-        "subcmd": subcmd,
-        "rc": completed_process.returncode,
-        "output": subcmd_output,
-        "authorized": authorized,
-    }
+    return IpcsResponse(
+        subcmd=subcmd,
+        rc=completed_process.returncode,
+        output=subcmd_output,
+        authorized=authorized,
+    )

@@ -2,11 +2,10 @@
 Public Utility Functions
 """
 
-import os
 from pyipcs.exceptions import TsoError
-from zoautil_py import datasets, exceptions
-from ._execs import IPCSVERS, IPCSRUN, IPCSEVAL
-from ._util import check_dataset_exists
+from zoautil_py import datasets, zoau_io, exceptions
+from ._execs import IPCSVERS, IPCSRUN, IPCSSRC, IPCSEVAL
+from ._util import get_dataset, check_dataset_exists, tso_profile_prefix
 from ._version import __version__
 
 
@@ -22,7 +21,7 @@ def default_driver_dsname() -> str:
         Default driver data set name.
     """
     # Start with TSO prefix:
-    dsname = datasets.get_hlq() if datasets.get_hlq() else os.getenv("USER", "TEMP")
+    dsname = tso_profile_prefix()
     # Add .PYIPCS.V<pyIPCS_version>:
     dsname += ".PYIPCS.V"
     dsname += "".join(part.zfill(2) for part in __version__.split("."))
@@ -55,6 +54,10 @@ def create_driver(dsname: str) -> None:
             content=IPCSRUN
         )
         datasets.write(
+            f"{dsname}(IPCSSRC)",
+            content=IPCSSRC
+        )
+        datasets.write(
             f"{dsname}(IPCSEVAL)",
             content=IPCSEVAL
         )
@@ -63,3 +66,29 @@ def create_driver(dsname: str) -> None:
         raise TsoError(
             "Failed to create pyIPCS driver data set {dsname}"
         ) from e
+
+def is_dump(dsname: str) -> bool:
+    """
+    Determine whether a data set exists and is a z/OS dump data set.
+    
+    Parameters
+    ----------
+    dsname : str
+
+    Returns
+    -------
+    bool
+        ``True`` if data set exists and is a dump data set. ``False`` otherwise.
+    """
+    # Check if the data set exists and perform checks
+    dump_dataset_obj = get_dataset(dsname)
+    if dump_dataset_obj is None:
+        return False
+    if int(dump_dataset_obj.record_length) != 4160:
+        return False
+    if int(dump_dataset_obj.block_size) % int(dump_dataset_obj.record_length) != 0:
+        return False
+    # Check if first record starts with DR2
+    if not zoau_io.RecordIO(f"//'{dsname}'").readrecord().hex().upper().startswith("DR2"):
+        return False
+    return True
