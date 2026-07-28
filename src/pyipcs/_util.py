@@ -36,7 +36,7 @@ def attempt_recall(dsname: str) -> None:
     """
     tso_cmd(
         "TIME",
-        allocations=IpcsAllocation("PYIPCS", dsname)
+        allocations=[IpcsAllocation("PYIPCS", dsname)],
     )
 
 def get_dataset(dsname: str) -> datasets.Dataset | None:

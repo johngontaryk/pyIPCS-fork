@@ -13,7 +13,7 @@ from pyipcs.response import TsoResponse
 
 def tso_cmd(
     cmd: str,
-    allocations: Optional[IpcsAllocation | list[IpcsAllocation]] = None,
+    allocations: Optional[list[IpcsAllocation]] = None,
 ) -> TsoResponse:
     """
     Run a TSO/E command.
@@ -23,9 +23,9 @@ def tso_cmd(
     cmd : str
         TSO/E command to run.
 
-    allocations : IpcsAllocation or list[IpcsAllocation], optional
-        A single IpcsAllocation or a list of IpcsAllocation objects to set up
-        before running the command. Default is None (no allocations).
+    allocations : list[IpcsAllocation], optional
+        List of IpcsAllocation objects to set up before running the command.
+        Default is None (no allocations).
 
     Returns
     -------
@@ -33,8 +33,6 @@ def tso_cmd(
     """
     if allocations is None:
         allocations = []
-    elif isinstance(allocations, IpcsAllocation):
-        allocations = [allocations]
 
     shell_script = tso_shell_script(
         cmd=cmd,

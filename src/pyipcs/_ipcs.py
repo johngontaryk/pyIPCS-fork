@@ -7,7 +7,7 @@ import tempfile
 from typing import IO, Iterable, Optional
 from pyipcs.allocation import IpcsAllocation
 from pyipcs._tso_shell_script import tso_shell_script
-from pyipcs.exceptions import TsoError
+from pyipcs.exceptions import TsoError, IpcsError
 from pyipcs.response import IpcsResponse
 
 
@@ -15,7 +15,7 @@ def ipcs_subcmd(
     subcmd: str,
     driver: str,
     ddir: str,
-    allocations: Optional[IpcsAllocation | list[IpcsAllocation]] = None,
+    allocations: list[IpcsAllocation],
     authorized: bool = True,
     setdef_parms: Optional[str | Iterable[str]] = None,
     output: Optional[IO[str]] = None,
@@ -36,9 +36,8 @@ def ipcs_subcmd(
         Data set name of the dump directory (DDIR) to allocate to ``IPCSDDIR``
         for the subcommand.
 
-    allocations : IpcsAllocation or list[IpcsAllocation], optional
-        A single IpcsAllocation or a list of IpcsAllocation objects to set up
-        before running the command. Default is None (no allocations).
+    allocations : list[IpcsAllocation]
+        List of IpcsAllocation objects.
 
     authorized : bool, optional
         Indicates whether the subcommand will be run in an authorized environment.
@@ -62,16 +61,7 @@ def ipcs_subcmd(
     -------
     IpcsResponse
     """
-    if allocations is None:
-        allocations = []
-    elif isinstance(allocations, IpcsAllocation):
-        allocations = [allocations]
-
-    allocations = (
-        allocations + 
-        [IpcsAllocation("IPCSDDIR", [ddir])] +
-        [IpcsAllocation("PYIPCS", [driver])]
-    )
+    allocations = allocations + [IpcsAllocation("IPCSDDIR", [ddir])]
 
     # Construct IPCS subcommand
     escaped_subcmd = subcmd.strip().replace("'", "''''")
@@ -93,12 +83,12 @@ def ipcs_subcmd(
     # Write output to temporary file first to ensure encoding of output
     with tempfile.NamedTemporaryFile(mode="w+", encoding="cp1047", delete=True) as tmp_file:
         try:
-            completed_process = subprocess.run(
+            subprocess.run(
                 shell_script,
                 shell=True,
                 stdout=tmp_file,
                 stderr=subprocess.STDOUT,
-                check=False,
+                check=True,
             )
         except Exception as e:
             tmp_file.seek(0)
@@ -106,7 +96,7 @@ def ipcs_subcmd(
                 tmp_file.readline()
             err_output = tmp_file.read()
             raise TsoError(
-                f"Failed to run IPCS subcommand '{subcmd}'", output=err_output
+                f"Failed to execute IPCS process for subcommand '{subcmd}'", output=err_output
             ) from e
 
         # Skip the first lines which are not output of the subcommand
@@ -115,17 +105,35 @@ def ipcs_subcmd(
             tmp_file.readline()
 
         # Determine if file object was provided and pipe output if provided
+        pyipcs_rc = None
         if output is not None:
             for line in tmp_file:
-                output.write(line)
+                if line.startswith("PYIPCS_RC="):
+                    pyipcs_rc = int(line.strip().split("=", 1)[1])
+                    break
+                else:
+                    output.write(line)
             subcmd_output = None
         else:
             # If no file object was provided read in rest of IPCS subcommand output
-            subcmd_output = tmp_file.read()
+            lines = []
+            for line in tmp_file:
+                if line.startswith("PYIPCS_RC="):
+                    pyipcs_rc = int(line.strip().split("=", 1)[1])
+                    break
+                else:
+                    lines.append(line)
+            subcmd_output = "".join(lines)
+
+    if pyipcs_rc is None:
+        raise IpcsError(
+            f"Could not find return code output during pyIPCS driver execution while running IPCS subcommand '{subcmd}'",
+            output=subcmd_output if subcmd_output is not None else ""
+        )
 
     return IpcsResponse(
         subcmd=subcmd,
-        rc=completed_process.returncode,
+        rc=pyipcs_rc,
         output=subcmd_output,
         authorized=authorized,
     )

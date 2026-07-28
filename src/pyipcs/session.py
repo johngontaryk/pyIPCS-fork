@@ -12,7 +12,7 @@ from ._util import check_dataset_exists, tso_profile_prefix
 from ._tso import tso_cmd
 from ._version import __version__
 from ._ipcs import ipcs_subcmd
-from .exceptions import TsoError, TsoInvalidReturnCodeError, DdirNotSet
+from .exceptions import TsoError, TsoInvalidReturnCodeError, IpcsInvalidReturnCodeError, DdirNotSet
 from .util import default_driver_dsname, create_driver
 from .response import TsoResponse, IpcsResponse
 
@@ -78,15 +78,13 @@ class IpcsSession:
             allocations = [allocations]
         self._allocations = copy.deepcopy(list(allocations))
 
-        # Allocation for session data set
-        self._session_allocation = IpcsAllocation("PYIPCS", [self._driver])
-
         if check_dataset_exists(self._driver):
             # If session data set does exist,
             # verify we are using the same pyIPCS version
             response = tso_cmd(
                 cmd=f"ex \'{self._driver}(IPCSVERS)\'",
-                allocations=self._session_allocation,
+                allocations=[IpcsAllocation("PYIPCS", [self._driver])
+],
             )
             if response.rc != 0 or f"PYIPCS={__version__}" not in response.output:
                 raise TsoError(
@@ -271,7 +269,7 @@ class IpcsSession:
         # Run TSO DELETE command
         response = tso_cmd(
             cmd=f"DELETE '{self._ddir}'",
-            allocations=IpcsAllocation("PYIPCS", self._ddir),
+            allocations=[IpcsAllocation("PYIPCS", self._ddir)],
         )
         if response.rc != 0:
             raise TsoInvalidReturnCodeError(response)
@@ -299,9 +297,9 @@ class IpcsSession:
         TsoInvalidReturnCodeError
             If ``IPCSSRC`` returns a non-zero return code.
         """
-        response = self.run("ex PYIPCS(IPCSSRC)")
+        response = self.run(f"{self._driver}(IPCSSRC)")
         if response.rc != 0:
-            raise TsoInvalidReturnCodeError(response)
+            raise IpcsInvalidReturnCodeError(response)
         if not response.output:
             return []
         return [
