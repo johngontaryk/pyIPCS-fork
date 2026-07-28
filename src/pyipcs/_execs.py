@@ -34,15 +34,29 @@ EXIT CODE(&RC)
 IPCSSRC = """/* REXX */
 ADDRESS IPCS
 
-/* Get the first source description in the current DDIR */
+/* Position to the FIRST source in the current DDIR.               */
+/* Without this, EVALDUMP operates on whatever source happens to   */
+/* be current - which may be none, causing evrc != 0 immediately.  */
+"SETDEF SOURCE(FIRST)"
+
+/* Evaluate the first source and capture its DSN and return code   */
 "EVALDUMP REXX(DSNAME(dsn) RETCODE(evrc))"
+
 do while evrc = 0
   say strip(dsn, 'B', "'")
-  /* Advance to the next source description */
+
+  /* Advance to the next source in the DDIR and evaluate it        */
   "EVALDUMP NEXT REXX(DSNAME(dsn) RETCODE(evrc))"
 end
 
-EXIT 0
+/* evrc = 4 means "no more sources" - that is normal loop exit.    */
+/* Any other non-zero value is a genuine error.                    */
+if evrc \= 4 & evrc \= 0 then do
+  say "EVALDUMP ended with unexpected RC=" evrc
+  exit evrc
+end
+
+exit 0
 """
 
 # IPCS Driver - REXX to run evaluate

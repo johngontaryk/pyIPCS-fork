@@ -297,7 +297,7 @@ class IpcsSession:
         TsoInvalidReturnCodeError
             If ``IPCSSRC`` returns a non-zero return code.
         """
-        response = self.run(f"{self._driver}(IPCSSRC)")
+        response = self.run(f"ex '{self._driver}(IPCSSRC)'")
         if response.rc != 0:
             raise IpcsInvalidReturnCodeError(response)
         if not response.output:
