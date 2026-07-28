@@ -31,27 +31,22 @@ EXIT CODE(&RC)
 """
 
 # IPCSSRC - REXX to list all source descriptions in the current DDIR via EVALDUMP
-IPCSSRC = r"""/* REXX */
-ADDRESS IPCS
+IPCSSRC = """PROC 0
 
-/* Evaluate the first source and capture its DSN and return code   */
-"EVALDUMP REXX(DSNAME(dsn) RETCODE(evrc))"
+EVALDUMP >= DSNAME('$') CLIST(SOURCE(SRC))
+SET EVALCC=&LASTCC          /* EVALDUMP return code          */
 
-do while evrc = 0
-  say strip(dsn, 'B', "'")
+/* Force variable pool resolution                            */ 
+/* IPCS defers write-back until referenced                   */
+WRITE &SRC
 
-  /* Advance to the next source in the DDIR and evaluate it        */
-  "EVALDUMP NEXT REXX(DSNAME(dsn) RETCODE(evrc))"
-end
+DO WHILE &EVALCC=0          /* Loop through dsnames          */
+  SET &DSN=&SUBSTR(9:&LENGTH(&SRC)-2,&SRC)
+  WRITE &DSN
 
-/* evrc = 4 means "no more sources" - that is normal loop exit.    */
-/* Any other non-zero value is a genuine error.                    */
-if evrc \= 4 & evrc \= 0 then do
-  say "EVALDUMP ended with unexpected RC=" evrc
-  exit evrc
-end
-
-exit 0
+  EVALDUMP > &SRC clist(source(SRC)) /* Next dsname          */
+  SET EVALCC=&LASTCC        /* EVALDUMP return code          */
+END   
 """
 
 # IPCS Driver - REXX to run evaluate
