@@ -31,13 +31,8 @@ EXIT CODE(&RC)
 """
 
 # IPCSSRC - REXX to list all source descriptions in the current DDIR via EVALDUMP
-IPCSSRC = """/* REXX */
+IPCSSRC = r"""/* REXX */
 ADDRESS IPCS
-
-/* Position to the FIRST source in the current DDIR.               */
-/* Without this, EVALDUMP operates on whatever source happens to   */
-/* be current - which may be none, causing evrc != 0 immediately.  */
-"SETDEF SOURCE(FIRST)"
 
 /* Evaluate the first source and capture its DSN and return code   */
 "EVALDUMP REXX(DSNAME(dsn) RETCODE(evrc))"
