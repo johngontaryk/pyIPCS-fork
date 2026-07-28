@@ -89,6 +89,6 @@ def is_dump(dsname: str) -> bool:
     if int(dump_dataset_obj.block_size) % int(dump_dataset_obj.record_length) != 0:
         return False
     # Check if first record starts with DR2
-    if not zoau_io.RecordIO(f"//'{dsname}'").readrecord().hex().upper().startswith("DR2"):
+    if not zoau_io.RecordIO(f"//'{dsname}'").readrecord().hex().upper().startswith("C4D9F2"):
         return False
     return True
