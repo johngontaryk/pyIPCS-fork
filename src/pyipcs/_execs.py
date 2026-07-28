@@ -34,7 +34,7 @@ ADDRESS IPCS
 /* Get the first source description in the current DDIR */
 "EVALDUMP REXX(DSNAME(dsn) RETCODE(evrc))"
 do while evrc = 0
-"  "NOTE "dsn" ASIS"
+  say strip(dsn, 'B', "'")
   /* Advance to the next source description */
   "EVALDUMP NEXT REXX(DSNAME(dsn) RETCODE(evrc))"
 end

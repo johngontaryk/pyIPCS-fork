@@ -305,7 +305,7 @@ class IpcsSession:
         if not response.output:
             return []
         return [
-            line.strip().strip("'")
+            line.strip()
             for line in response.output.splitlines()
             if line.strip()
         ]
