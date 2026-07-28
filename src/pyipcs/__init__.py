@@ -11,6 +11,6 @@ if sys.platform != "zos":
 from ._version import __version__
 from . import util
 from . import exceptions
-from .allocation import IpcsAllocation,
+from .allocation import IpcsAllocation
 from .dump import IpcsDump
 from .session import IpcsSession
