@@ -283,7 +283,7 @@ class IpcsSession:
         """
         Return the source dump data set names described in the current DDIR.
 
-        Uses the pyIPCS driver ``IPCSSRC`` REXX exec, 
+        Uses the pyIPCS driver ``IPCSSRC`` REXX exec,
         which calls ``EVALDUMP`` to iterate
         all source descriptions in the current DDIR.
 
@@ -299,15 +299,7 @@ class IpcsSession:
         TsoInvalidReturnCodeError
             If ``IPCSSRC`` returns a non-zero return code.
         """
-        if self._ddir is None:
-            raise DdirNotSet()
-        response = tso_cmd(
-            cmd=f"ex '{self._driver}(IPCSSRC)'",
-            allocations=[
-                self._session_allocation,
-                IpcsAllocation("IPCSDDIR", [self._ddir]),
-            ] + self.allocations,
-        )
+        response = self.run("ex PYIPCS(IPCSSRC)")
         if response.rc != 0:
             raise TsoInvalidReturnCodeError(response)
         if not response.output:
