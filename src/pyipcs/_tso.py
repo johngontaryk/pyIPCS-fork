@@ -1,6 +1,7 @@
 """
 TSO Command Function
 """
+# pylint: disable=duplicate-code
 
 import subprocess
 import tempfile
@@ -18,18 +19,13 @@ def tso_cmd(
     """
     Run a TSO/E command.
 
-    Parameters
-    ----------
-    cmd : str
-        TSO/E command to run.
+    Args:
+        cmd: TSO/E command to run.
+        allocations: List of :class:`~pyipcs.IpcsAllocation` objects to set up
+            before running the command. Default is ``None`` (no allocations).
 
-    allocations : list[IpcsAllocation], optional
-        List of IpcsAllocation objects to set up before running the command.
-        Default is None (no allocations).
-
-    Returns
-    -------
-    TsoResponse
+    Returns:
+        TsoResponse: Response from the TSO/E command.
     """
     if allocations is None:
         allocations = []
@@ -41,7 +37,9 @@ def tso_cmd(
     )
 
     # Write output to temporary file first to ensure encoding of output
-    with tempfile.NamedTemporaryFile(mode="w+", encoding="cp1047", delete=True) as tmp_file:
+    with tempfile.NamedTemporaryFile(
+        mode="w+", encoding="cp1047", delete=True
+    ) as tmp_file:
         try:
             completed_process = subprocess.run(
                 shell_script,
@@ -53,9 +51,7 @@ def tso_cmd(
         except Exception as e:
             tmp_file.seek(0)
             output = tmp_file.read()
-            raise TsoError(
-                f"Failed to run TSO/E command '{cmd}'", output=output
-            ) from e
+            raise TsoError(f"Failed to run TSO/E command '{cmd}'", output=output) from e
 
         tmp_file.seek(0)
         output = tmp_file.read()

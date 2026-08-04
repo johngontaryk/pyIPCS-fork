@@ -8,31 +8,16 @@ from collections.abc import Iterable
 class IpcsAllocation:
     """
     Represents a single TSO allocation.
-
-    Attributes
-    ----------
-    dd_name : str
-        The DD name for this allocation.
-
-    specification : str | list[str]
-        String data set allocation request or list of cataloged datasets.
     """
 
     def __init__(self, dd_name: str, specification: str | Iterable[str]) -> None:
         """
-        Constructor for IpcsAllocation Object.
+        Constructor for :class:`IpcsAllocation`.
 
-        Parameters
-        ----------
-        dd_name : str
-            The DD name for this allocation.
-
-        specification : str | Iterable[str]
-            String data set allocation request or iterable of cataloged datasets.
-
-        Returns
-        -------
-        None
+        Args:
+            dd_name: The DD name for this allocation.
+            specification: String data set allocation request or iterable of
+                cataloged datasets.
         """
         self._dd_name: str = dd_name.strip()
         self._specification: str | list[str]
@@ -43,8 +28,10 @@ class IpcsAllocation:
 
     @property
     def dd_name(self) -> str:
+        """The DD name for this allocation."""
         return self._dd_name
 
     @property
     def specification(self) -> str | list[str]:
+        """String data set allocation request or list of cataloged datasets."""
         return self._specification

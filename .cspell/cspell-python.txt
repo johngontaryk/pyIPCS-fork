@@ -1,5 +1,6 @@
 conftest
 docstrings
+finalizer
 fixturenames
 getfixturevalue
 ipynb

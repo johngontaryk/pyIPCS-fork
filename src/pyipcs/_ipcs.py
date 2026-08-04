@@ -1,6 +1,7 @@
 """
 IPCS Subcommand Function
 """
+# pylint: disable=duplicate-code
 
 import subprocess
 import tempfile
@@ -16,50 +17,35 @@ def ipcs_subcmd(
     driver: str,
     ddir: str,
     allocations: list[IpcsAllocation],
-    authorized: bool = True,
-    setdef_parms: Optional[str | Iterable[str]] = None,
+    authorized: bool,
+    local_defaults: Optional[str] = None,
     output: Optional[IO[str]] = None,
 ) -> IpcsResponse:
     """
     Run an IPCS subcommand.
 
-    Parameters
-    ----------
-    subcmd : str
-        IPCS subcommand to run.
+    Args:
+        subcmd: IPCS subcommand to run.
+        driver: Name of the pyIPCS driver data set (PDSE) that contains the
+            IPCSRUN CLIST member.
+        ddir: Data set name of the dump directory (DDIR) to allocate to
+            ``IPCSDDIR`` for the subcommand.
+        allocations: List of :class:`~pyipcs.IpcsAllocation` objects.
+        authorized: Indicates whether the subcommand will be run in an
+            authorized environment.
+        local_defaults: If non-empty, runs
+            ``SETDEF NOLIST LOCAL <local_defaults>`` before running the
+            specified subcommand. Note: the defaults set by this will not carry
+            over to future subcommands. May be a single string
+            (e.g. ``'FLAG(WARNING) CONFIRM(NO)'``). Default is ``None`` to not
+            run a ``SETDEF`` subcommand before running the specified subcommand.
+        output: An open, writable text file object. When provided, subcommand
+            output is written to this file instead of being returned as a string
+            (``output`` attribute will be ``None`` in the returned
+            :class:`~pyipcs.IpcsResponse`). Default is ``None``.
 
-    driver : str
-        Name of the pyIPCS driver data set (PDSE) that contains the IPCSRUN
-        CLIST member.
-
-    ddir : str
-        Data set name of the dump directory (DDIR) to allocate to ``IPCSDDIR``
-        for the subcommand.
-
-    allocations : list[IpcsAllocation]
-        List of IpcsAllocation objects.
-
-    authorized : bool, optional
-        Indicates whether the subcommand will be run in an authorized environment.
-
-    setdef_parms : str or Iterable[str], optional
-        If this parameter is provided will run ``SETDEF NOLIST LOCAL <setdef_parms>``
-        before running the specified subcommand.
-        Note: the defaults set by this will not carry over to future subcommands.
-        May be a single string (e.g. ``'FLAG(WARNING) CONFIRM(NO)'``)
-        or an iterable of strings (e.g. ``['FLAG(WARNING)', 'CONFIRM(NO)']``).
-        Default is None to not run a ``SETDEF`` subcommand
-        before running the specified subcommand.
-
-    output : file object, optional
-        An open, writable text file object. When provided, subcommand output is
-        to this file instead of being returned as a string
-        (``output`` attribute will be ``None`` in returned ``IpcsResponse``).
-        Default is None.
-
-    Returns
-    -------
-    IpcsResponse
+    Returns:
+        IpcsResponse: Response from the IPCS subcommand.
     """
     allocations = allocations + [IpcsAllocation("IPCSDDIR", [ddir])]
 
@@ -67,10 +53,13 @@ def ipcs_subcmd(
     escaped_subcmd = subcmd.strip().replace("'", "''''")
 
     # Construct full SETDEF LOCAL NOLIST subcommand to run before specified subcommand
-    if setdef_parms is not None:
-        setdef_str = setdef_parms if isinstance(setdef_parms, str) else " ".join(setdef_parms)
-        escaped_setdef = setdef_str.replace("'", "''''")
-        cmd = f"ex '{driver}(IPCSRUN)' 'SUBCMD(''{escaped_subcmd}'') SETDEFLOCAL(''SETDEF NOLIST LOCAL {escaped_setdef}'')'"
+    if local_defaults:
+        escaped_setdef = local_defaults.replace("'", "''''")
+        cmd = (
+            f"ex '{driver}(IPCSRUN)' "
+            f"'SUBCMD(''{escaped_subcmd}'') "
+            f"SETDEFLOCAL(''SETDEF NOLIST LOCAL {escaped_setdef}'')'"
+        )
     else:
         cmd = f"ex '{driver}(IPCSRUN)' 'SUBCMD(''{escaped_subcmd}'')'"
 
@@ -81,7 +70,9 @@ def ipcs_subcmd(
     )
 
     # Write output to temporary file first to ensure encoding of output
-    with tempfile.NamedTemporaryFile(mode="w+", encoding="cp1047", delete=True) as tmp_file:
+    with tempfile.NamedTemporaryFile(
+        mode="w+", encoding="cp1047", delete=True
+    ) as tmp_file:
         try:
             subprocess.run(
                 shell_script,
@@ -96,7 +87,8 @@ def ipcs_subcmd(
                 tmp_file.readline()
             err_output = tmp_file.read()
             raise TsoError(
-                f"Failed to execute IPCS process for subcommand '{subcmd}'", output=err_output
+                f"Failed to execute IPCS process for subcommand '{subcmd}'",
+                output=err_output,
             ) from e
 
         # Skip the first lines which are not output of the subcommand
@@ -111,8 +103,7 @@ def ipcs_subcmd(
                 if line.startswith("PYIPCS_RC="):
                     pyipcs_rc = int(line.strip().split("=", 1)[1])
                     break
-                else:
-                    output.write(line)
+                output.write(line)
             subcmd_output = None
         else:
             # If no file object was provided read in rest of IPCS subcommand output
@@ -121,14 +112,14 @@ def ipcs_subcmd(
                 if line.startswith("PYIPCS_RC="):
                     pyipcs_rc = int(line.strip().split("=", 1)[1])
                     break
-                else:
-                    lines.append(line)
+                lines.append(line)
             subcmd_output = "".join(lines)
 
     if pyipcs_rc is None:
         raise IpcsError(
-            f"Could not find return code output during pyIPCS driver execution while running IPCS subcommand '{subcmd}'",
-            output=subcmd_output if subcmd_output is not None else ""
+            f"Could not find return code output during pyIPCS driver execution "
+            f"while running IPCS subcommand '{subcmd}'",
+            output=subcmd_output if subcmd_output is not None else "",
         )
 
     return IpcsResponse(

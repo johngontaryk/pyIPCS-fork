@@ -8,17 +8,6 @@ from typing import Optional
 class TsoResponse:
     """
     Response from running a TSO/E command.
-
-    Attributes
-    ----------
-    cmd : str
-        The TSO/E command that was run.
-    rc : int
-        Return code of the TSO/E command.
-    output : str
-        Output from the TSO/E command.
-    authorized : bool
-        Whether the command ran in an authorized environment.
     """
 
     def __init__(self, cmd: str, rc: int, output: str, authorized: bool) -> None:
@@ -29,18 +18,22 @@ class TsoResponse:
 
     @property
     def cmd(self) -> str:
+        """The TSO/E command that was run."""
         return self._cmd
 
     @property
     def rc(self) -> int:
+        """Return code of the TSO/E command."""
         return self._rc
 
     @property
     def output(self) -> str:
+        """Output from the TSO/E command."""
         return self._output
 
     @property
     def authorized(self) -> bool:
+        """Whether the command ran in an authorized environment."""
         return self._authorized
 
     def __repr__(self) -> str:
@@ -53,18 +46,6 @@ class TsoResponse:
 class IpcsResponse:
     """
     Response from running an IPCS subcommand.
-
-    Attributes
-    ----------
-    subcmd : str
-        The IPCS subcommand that was run.
-    rc : int
-        Return code of the IPCS subcommand.
-    output : str or None
-        Output from the IPCS subcommand, or ``None`` if a file object was
-        provided via the ``output`` parameter.
-    authorized : bool
-        Whether the subcommand ran in an authorized environment.
     """
 
     def __init__(
@@ -81,18 +62,22 @@ class IpcsResponse:
 
     @property
     def subcmd(self) -> str:
+        """The IPCS subcommand that was run."""
         return self._subcmd
 
     @property
     def rc(self) -> int:
+        """Return code of the IPCS subcommand."""
         return self._rc
 
     @property
     def output(self) -> Optional[str]:
+        """Output from the IPCS subcommand, or ``None`` if a file object was provided."""
         return self._output
 
     @property
     def authorized(self) -> bool:
+        """Whether the subcommand ran in an authorized environment."""
         return self._authorized
 
     def __repr__(self) -> str:

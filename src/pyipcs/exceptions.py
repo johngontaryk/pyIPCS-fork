@@ -1,5 +1,5 @@
 """
-pyIPCS Exceptions
+pyIPCS Warnings and Exceptions
 """
 
 from pyipcs.response import TsoResponse, IpcsResponse
@@ -12,18 +12,9 @@ class TsoError(Exception):
 
     def __init__(self, message: str, output: str = "") -> None:
         """
-        Constructor for TsoError.
-
-        Parameters
-        ----------
-        message : str
-            Error message.
-        output : str, optional
-            Output captured before the error occurred. Default is ``""``.
-
-        Returns
-        -------
-        None
+        Args:
+            message: Error message.
+            output: Output captured before the error occurred. Default is ``""``.
         """
         self._output: str = output
         full_message = message
@@ -33,6 +24,7 @@ class TsoError(Exception):
 
     @property
     def output(self) -> str:
+        """Output captured before the error occurred."""
         return self._output
 
 
@@ -43,16 +35,8 @@ class TsoInvalidReturnCodeError(TsoError):
 
     def __init__(self, response: TsoResponse) -> None:
         """
-        Constructor for TsoInvalidReturnCodeError.
-
-        Parameters
-        ----------
-        response : TsoResponse
-            TSO response.
-
-        Returns
-        -------
-        None
+        Args:
+            response: TSO response.
         """
         self._response = response
         super().__init__(
@@ -63,7 +47,8 @@ class TsoInvalidReturnCodeError(TsoError):
         )
 
     @property
-    def response(self):
+    def response(self) -> TsoResponse:
+        """The TSO response that triggered this error."""
         return self._response
 
 
@@ -74,44 +59,22 @@ class IpcsError(TsoError):
 
     def __init__(self, message: str, output: str = "") -> None:
         """
-        Constructor for IpcsError.
-
-        Parameters
-        ----------
-        message : str
-            Error message.
-        output : str, optional
-            Output captured before the error occurred. Default is ``""``.
-
-        Returns
-        -------
-        None
+        Args:
+            message: Error message.
+            output: Output captured before the error occurred. Default is ``""``.
         """
-        self._output: str = output
         super().__init__(message, output=output)
 
-    @property
-    def output(self) -> str:
-        return self._output
 
-
-class IpcsInvalidReturnCodeError(TsoError):
+class IpcsInvalidReturnCodeError(IpcsError):
     """
     IPCS error for an invalid return code while trying to run an IPCS subcommand.
     """
 
     def __init__(self, response: IpcsResponse) -> None:
         """
-        Constructor for IpcsInvalidReturnCodeError.
-
-        Parameters
-        ----------
-        response : IpcsResponse
-            IPCS response.
-
-        Returns
-        -------
-        None
+        Args:
+            response: IPCS response.
         """
         self._response = response
         super().__init__(
@@ -122,17 +85,80 @@ class IpcsInvalidReturnCodeError(TsoError):
         )
 
     @property
-    def response(self):
+    def response(self) -> IpcsResponse:
+        """The IPCS response that triggered this error."""
         return self._response
 
 
-class DdirNotSet(TsoError):
+class TsoWarning(UserWarning):
     """
-    Exception raised when no dump directory (DDIR) is set for the pyIPCS session.
+    Base level warning for TSO/E conditions.
+    """
+
+    def __init__(self, message: str) -> None:
+        """
+        Args:
+            message: Warning message.
+        """
+        super().__init__(message)
+
+
+class TsoInvalidReturnCodeWarning(TsoWarning):
+    """
+    TSO/E warning for an invalid return code from a TSO command.
+    """
+
+    def __init__(self, response: TsoResponse) -> None:
+        """
+        Args:
+            response: TSO response.
+        """
+        self._response = response
+        super().__init__(
+            f"TSO command {response.cmd} "
+            f"(authorized={response.authorized}) "
+            f"exited with a return code {response.rc}."
+        )
+
+    @property
+    def response(self) -> TsoResponse:
+        """The TSO response that triggered this warning."""
+        return self._response
+
+
+class IpcsWarning(TsoWarning):
+    """
+    Base level warning for IPCS conditions.
+    """
+
+
+class IpcsInvalidReturnCodeWarning(IpcsWarning):
+    """
+    IPCS warning for an invalid return code while trying to run an IPCS subcommand.
+    """
+
+    def __init__(self, response: IpcsResponse) -> None:
+        """
+        Args:
+            response: IPCS response.
+        """
+        self._response = response
+        super().__init__(
+            f"IPCS subcommand {response.subcmd!r} "
+            f"(authorized={response.authorized}) "
+            f"exited with a return code {response.rc}."
+        )
+
+    @property
+    def response(self) -> IpcsResponse:
+        """The IPCS response that triggered this warning."""
+        return self._response
+
+
+class DdirDeletedError(TsoError):
+    """
+    Exception raised when an operation is attempted on a deleted dump directory (DDIR).
     """
 
     def __init__(self) -> None:
-        super().__init__(
-            "There is no current dump directory (DDIR) set for your pyIPCS session"
-            " - use set_ddir to set one before running subcommands"
-        )
+        super().__init__("This dump directory (DDIR) has already been deleted")

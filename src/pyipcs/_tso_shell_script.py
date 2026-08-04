@@ -23,6 +23,7 @@ _TSO_SHELL_SCRIPT = """
 )
 """
 
+
 def tso_shell_script(
     cmd: str,
     authorized: bool,
@@ -31,25 +32,18 @@ def tso_shell_script(
     """
     Build the TSO shell script string from the given parameters.
 
-    Parameters
-    ----------
-    cmd : str
-        TSO/E command to run.
+    Args:
+        cmd: TSO/E command to run.
+        authorized: If ``True``, uses the ``tsocmd`` shell command which can issue
+            authorized TSO/E commands via the TSO/E terminal monitor program
+            (IKJEFT01). If ``False``, uses the ``tso`` shell command which sets up
+            a mini TSO/E environment in a new address space through the OMVS
+            interface.
+        allocations: List of :class:`~pyipcs.IpcsAllocation` objects to set up
+            before running the command.
 
-    authorized : bool
-        If ``True``, uses the ``tsocmd`` shell command which can issue authorized TSO/E commands
-        via the TSO/E terminal monitor program (IKJEFT01).
-        If ``False``, uses the ``tso`` shell command which sets up a mini TSO/E environment
-        in a new address space through the OMVS interface.
-
-    allocations : list[IpcsAllocation]
-        List of IpcsAllocation objects to set up before running the command.
-
-    Returns
-    -------
-    str
-        TSO shell script.
-    
+    Returns:
+        str: TSO shell script.
     """
     tsoalloc = (
         "export TSOALLOC=" + ":".join(a.dd_name for a in allocations)
@@ -57,9 +51,11 @@ def tso_shell_script(
         else ""
     )
     allocation_exports = "\n".join(
-        f"export {alloc.dd_name}=\"{alloc.specification}\";"
-        if isinstance(alloc.specification, str)
-        else f"export {alloc.dd_name}={':'.join(alloc.specification)};"
+        (
+            f'export {alloc.dd_name}="{alloc.specification}";'
+            if isinstance(alloc.specification, str)
+            else f"export {alloc.dd_name}={':'.join(alloc.specification)};"
+        )
         for alloc in allocations
     )
     return _TSO_SHELL_SCRIPT.format(

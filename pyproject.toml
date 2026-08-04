@@ -24,6 +24,9 @@ classifiers = [
     "Topic :: System :: Hardware :: Mainframes",
 ]
 
+[project.scripts]
+pyipcs = "pyipcs.cli:main"
+
 [tool.setuptools.packages.find]
 where = ["src"]
 include = ["pyipcs*"]
