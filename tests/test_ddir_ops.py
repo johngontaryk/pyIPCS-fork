@@ -52,7 +52,7 @@ def test_copy_ddir_drop_dump(dump, ddir, dump_ddir):
     assert dump.dsname in dump_ddir.sources()
     ddir.copy_ddir(dump_ddir, dump)
     assert dump.dsname in ddir.sources()
-    ddir.drop_dump(dump)
+    ddir.drop_dump(dump.dsname)
     assert dump.dsname not in ddir.sources()
 
 
