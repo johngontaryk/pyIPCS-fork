@@ -97,7 +97,7 @@ class IpcsDdir:
         )
 
         # Set delete policy and create finalizer
-        self._delete_policy = {"delete": delete, "is_deleted": True}
+        self._delete_policy = {"delete": delete, "is_deleted": False}
         self._finalizer = weakref.finalize(
             self, IpcsDdir._cleanup, self._dsname, self._delete_policy
         )
