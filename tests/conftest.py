@@ -195,14 +195,14 @@ def reset_state(
                 failures.append(dsname)
         if not cleanup_test_ddir(ddir_dsname):
             failures.append(ddir_dsname)
-        for dsname in datasets.list_vsam_datasets(
+        for dataset in datasets.list_vsam_datasets(
             f"{tso_profile_prefix()}.PYIPCS.DDIR*"
         ):
-            if not cleanup_test_ddir(dsname):
-                failures.append(dsname)
-        for dsname in datasets.list_vsam_datasets(f"{hlq}.DDIR*"):
-            if not cleanup_test_ddir(dsname):
-                failures.append(dsname)
+            if not cleanup_test_ddir(dataset.name):
+                failures.append(dataset.name)
+        for dataset in datasets.list_vsam_datasets(f"{hlq}.DDIR*"):
+            if not cleanup_test_ddir(dataset.name):
+                failures.append(dataset.name)
         if failures:
             pytest.exit("Failed to delete test data sets")
 
