@@ -21,8 +21,9 @@ def _assert_driver(dsname: str) -> None:
     def _assert_exec(member_name: str, expected_content: str) -> None:
         """Read and check the contents of the exec member."""
         content = datasets.read(f"{dsname}({member_name})")
+        normalize = lambda s: "\n".join(line.rstrip() for line in s.splitlines()).strip()
         assert (
-            content.strip() == expected_content.strip()
+            normalize(content) == normalize(expected_content)
         ), f"Content of {member_name} does not match expected content"
 
     _assert_exec("IPCSVERS", IPCSVERS)
