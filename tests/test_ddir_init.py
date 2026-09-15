@@ -63,7 +63,9 @@ def test_ddir_init_custom_driver(ddir_dsname, driver_dsname, allocations):
     assert not check_dataset_exists(ddir_dsname)
 
     # Create DDIR
-    with IpcsDdir(ddir_dsname, allocations=allocations) as ddir:
+    with IpcsDdir(
+        ddir_dsname, driver=driver_dsname, allocations=allocations
+    ) as ddir:
         assert ddir.dsname == ddir_dsname
         assert check_dataset_exists(ddir_dsname)
         assert ddir.driver == driver_dsname
@@ -74,7 +76,9 @@ def test_ddir_init_custom_driver(ddir_dsname, driver_dsname, allocations):
     _assert_driver(driver_dsname)
 
     # Check we can reuse DDIR and driver
-    with IpcsDdir(ddir_dsname, allocations=allocations) as ddir:
+    with IpcsDdir(
+        ddir_dsname, driver=driver_dsname, allocations=allocations
+    ) as ddir:
         assert ddir.dsname == ddir_dsname
         assert check_dataset_exists(ddir_dsname)
         assert ddir.driver == driver_dsname
