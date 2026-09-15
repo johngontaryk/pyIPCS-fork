@@ -1,6 +1,7 @@
 """
 File for using JCL to create MockSubcmd Objects
 """
+
 # pylint: disable=consider-using-join
 import warnings
 from zoautil_py import jobs, datasets
@@ -15,20 +16,21 @@ JCL_OUTPUT_DSNAME = f"{TEST_HLQ}.JCLOUT"
 
 
 MOCK_SUBCMD_JCL = """//MOCKPY JOB 'MOCK PYIPCS',CLASS=A
-//*====================================================================  
+//*====================================================================
 //* MOCK PYIPCS SUBCOMMAND OBJECT JCL
-//*====================================================================  
-//IPCS EXEC PGM=IKJEFT01,DYNAMNBR=1000,REGION=0M                         
+//*====================================================================
+//IPCS EXEC PGM=IKJEFT01,DYNAMNBR=1000,REGION=0M
 //IPCSDDIR DD DISP=SHR,DSN={ddir}
-{allocations_jcl}
-//SYSUDUMP DD SYSOUT=*         
+{dd_allocations_jcl}
+//SYSUDUMP DD SYSOUT=*
 //SYSTSPRT  DD DSN={mock_subcmd_dsname},DISP=OLD
-//SYSTSIN DD * 
-PROFILE MSGID 
-IPCS NOPARM 
+//SYSTSIN DD *
+PROFILE MSGID
+{alloc_cmd_allocations_jcl}
+IPCS NOPARM
 SETDEF {dsname_param} LIST
 {subcmds}
-END   
+END
 """
 
 
@@ -60,17 +62,39 @@ def mock_subcmd_jcl(
         corresponds to 'returned_list[i]'
     """
 
-    def format_allocations(allocations) -> str:
+    def format_allocations(allocations) -> tuple[str, str]:
         """
-        Format allocations for JCL
+        Format allocations for JCL.
+
+        Each value can be:
+          - list[str]  -> dataset name(s) to concatenate as JCL DD statements
+          - str        -> TSO ALLOC command string; emitted as an ALLOC command
+                         inside SYSTSIN (before IPCS is invoked)
+
+        Returns
+        -------
+        tuple[str, str]
+            (dd_jcl, alloc_cmds) where dd_jcl is the block of JCL DD lines and
+            alloc_cmds is the block of TSO ALLOC commands for SYSTSIN.
         """
-        allocations_str = ""
+        dd_str = ""
+        alloc_str = ""
         for dd_name, specification in allocations.items():
-            if specification:
-                allocations_str += f"//{dd_name}  DD DSN={specification[0]},DISP=SHR\n"
-            for dsname in specification[1:]:
-                allocations_str += f"//         DD DSN={dsname},DISP=SHR\n"
-        return allocations_str[:-1]
+            if isinstance(specification, str):
+                # TSO ALLOC command — strip leading 'alloc' verb if present,
+                # then re-emit with FI(ddname) so the DD name is explicit.
+                cmd = specification.strip()
+                cmd_upper = cmd.upper()
+                if cmd_upper.startswith("ALLOC "):
+                    cmd = cmd[6:].strip()
+                alloc_str += f"ALLOC FI({dd_name}) {cmd}\n"
+            else:
+                # list[str] — dataset concatenation as JCL DD lines
+                if specification:
+                    dd_str += f"//{dd_name}  DD DSN={specification[0]},DISP=SHR\n"
+                for dsname in specification[1:]:
+                    dd_str += f"//         DD DSN={dsname},DISP=SHR\n"
+        return dd_str.rstrip("\n"), alloc_str.rstrip("\n")
 
     def submit_jcl():
         """
@@ -83,23 +107,26 @@ def mock_subcmd_jcl(
         for subcmd in test_subcmds:
             jcl_subcmd_str += f"{subcmd}\n"
 
+        dd_allocations_jcl, alloc_cmd_allocations_jcl = (
+            format_allocations(test_allocations) if test_allocations else ("//*", "")
+        )
+
         jcl_str = MOCK_SUBCMD_JCL.format(
             ddir=test_ddir,
-            allocations_jcl=(
-                format_allocations(test_allocations) if test_allocations else "//*"
-            ),
+            dd_allocations_jcl=dd_allocations_jcl if dd_allocations_jcl else "//*",
+            alloc_cmd_allocations_jcl=alloc_cmd_allocations_jcl,
             mock_subcmd_dsname=JCL_OUTPUT_DSNAME,
             dsname_param=f"DSN('{test_dsname}')" if test_dsname else "NODSNAME",
             subcmds=jcl_subcmd_str,
         )
 
         # Create and write JCL to data set
-        datasets.create(name=JCL_TEMP_DSNAME,dataset_type="PDSE")
+        datasets.create(name=JCL_TEMP_DSNAME, dataset_type="PDSE")
         datasets.write(dataset_name=JCL_TEMP_MEMBERNAME, content=jcl_str)
 
         # Create JCL output dataset
 
-        datasets.create(name=JCL_OUTPUT_DSNAME,dataset_type="SEQ", record_format="VB")
+        datasets.create(name=JCL_OUTPUT_DSNAME, dataset_type="SEQ", record_format="VB")
         datasets.write(dataset_name=JCL_OUTPUT_DSNAME, content="")
 
         # Submit job

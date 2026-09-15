@@ -2,8 +2,6 @@
 TSO Shell Script
 """
 
-from pyipcs.allocation import IpcsAllocation
-
 _TSO_SHELL_SCRIPT = """
 # TSO Shell Script
 # Shell Script to run TSO/E Command with allocations
@@ -27,7 +25,7 @@ _TSO_SHELL_SCRIPT = """
 def tso_shell_script(
     cmd: str,
     authorized: bool,
-    allocations: list[IpcsAllocation],
+    allocations: dict[str, str | list[str]],
 ) -> str:
     """
     Build the TSO shell script string from the given parameters.
@@ -39,24 +37,20 @@ def tso_shell_script(
             (IKJEFT01). If ``False``, uses the ``tso`` shell command which sets up
             a mini TSO/E environment in a new address space through the OMVS
             interface.
-        allocations: List of :class:`~pyipcs.IpcsAllocation` objects to set up
-            before running the command.
+        allocations: Dictionary of allocations where keys are DD names and values
+            are string data set allocation requests or lists of cataloged datasets.
 
     Returns:
         str: TSO shell script.
     """
-    tsoalloc = (
-        "export TSOALLOC=" + ":".join(a.dd_name for a in allocations)
-        if allocations
-        else ""
-    )
+    tsoalloc = "export TSOALLOC=" + ":".join(allocations.keys()) if allocations else ""
     allocation_exports = "\n".join(
         (
-            f'export {alloc.dd_name}="{alloc.specification}";'
-            if isinstance(alloc.specification, str)
-            else f"export {alloc.dd_name}={':'.join(alloc.specification)};"
+            f'export {dd_name}="{spec}";'
+            if isinstance(spec, str)
+            else f"export {dd_name}={':'.join(spec)};"
         )
-        for alloc in allocations
+        for dd_name, spec in allocations.items()
     )
     return _TSO_SHELL_SCRIPT.format(
         tsoalloc=tsoalloc,

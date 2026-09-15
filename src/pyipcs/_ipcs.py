@@ -1,12 +1,12 @@
 """
 IPCS Subcommand Function
 """
+
 # pylint: disable=duplicate-code
 
 import subprocess
 import tempfile
-from typing import IO, Iterable, Optional
-from pyipcs.allocation import IpcsAllocation
+from typing import IO, Optional
 from pyipcs._tso_shell_script import tso_shell_script
 from pyipcs.exceptions import TsoError, IpcsError
 from pyipcs.response import IpcsResponse
@@ -16,7 +16,7 @@ def ipcs_subcmd(
     subcmd: str,
     driver: str,
     ddir: str,
-    allocations: list[IpcsAllocation],
+    allocations: dict[str, str | list[str]],
     authorized: bool,
     local_defaults: Optional[str] = None,
     output: Optional[IO[str]] = None,
@@ -30,7 +30,8 @@ def ipcs_subcmd(
             IPCSRUN CLIST member.
         ddir: Data set name of the dump directory (DDIR) to allocate to
             ``IPCSDDIR`` for the subcommand.
-        allocations: List of :class:`~pyipcs.IpcsAllocation` objects.
+        allocations: Dictionary of allocations where keys are DD names and values
+            are string data set allocation requests or lists of cataloged datasets.
         authorized: Indicates whether the subcommand will be run in an
             authorized environment.
         local_defaults: If non-empty, runs
@@ -47,7 +48,7 @@ def ipcs_subcmd(
     Returns:
         IpcsResponse: Response from the IPCS subcommand.
     """
-    allocations = allocations + [IpcsAllocation("IPCSDDIR", [ddir])]
+    allocations = {**allocations, "IPCSDDIR": [ddir]}
 
     # Construct IPCS subcommand
     escaped_subcmd = subcmd.strip().replace("'", "''''")

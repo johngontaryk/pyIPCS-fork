@@ -1,3 +1,6 @@
+addoption
+autouse
+capsys
 conftest
 docstrings
 finalizer

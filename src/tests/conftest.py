@@ -26,7 +26,12 @@ if os.path.exists(
     ) as settings_file:
         TEST_SETTINGS = json.load(settings_file)
 
-for pyipcs_test_setting in ["TEST_HLQ", "TEST_DIRECTORY", "TEST_ALLOCATIONS", "TEST_DUMPS"]:
+for pyipcs_test_setting in [
+    "TEST_HLQ",
+    "TEST_DIRECTORY",
+    "TEST_ALLOCATIONS",
+    "TEST_DUMPS",
+]:
     if pyipcs_test_setting not in TEST_SETTINGS:
         TEST_SETTINGS[pyipcs_test_setting] = None
 
@@ -140,7 +145,11 @@ def pytest_generate_tests(metafunc):
         else:
             metafunc.parametrize(
                 "test_dump",
-                [pytest.param(None, marks=pytest.mark.skip("No Test z/OS Dumps Specified"))],
+                [
+                    pytest.param(
+                        None, marks=pytest.mark.skip("No Test z/OS Dumps Specified")
+                    )
+                ],
             )
 
 

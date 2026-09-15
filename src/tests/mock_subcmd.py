@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 from pyipcs import Subcmd
 
+
 class MockSubcmd(Subcmd):
     """
     Mock pyIPCS Subcmd Object
@@ -21,7 +22,7 @@ class MockSubcmd(Subcmd):
         mock_rc: int = 0,
         mock_directory: str | None = None,
         outfile: bool = False,
-        keep_file: bool = False
+        keep_file: bool = False,
     ):
         """
         Constructor for MockSubcmd object.

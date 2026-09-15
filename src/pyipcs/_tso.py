@@ -1,12 +1,12 @@
 """
 TSO Command Function
 """
+
 # pylint: disable=duplicate-code
 
 import subprocess
 import tempfile
 from typing import Optional
-from pyipcs.allocation import IpcsAllocation
 from pyipcs._tso_shell_script import tso_shell_script
 from pyipcs.exceptions import TsoError
 from pyipcs.response import TsoResponse
@@ -14,21 +14,22 @@ from pyipcs.response import TsoResponse
 
 def tso_cmd(
     cmd: str,
-    allocations: Optional[list[IpcsAllocation]] = None,
+    allocations: Optional[dict[str, str | list[str]]] = None,
 ) -> TsoResponse:
     """
     Run a TSO/E command.
 
     Args:
         cmd: TSO/E command to run.
-        allocations: List of :class:`~pyipcs.IpcsAllocation` objects to set up
-            before running the command. Default is ``None`` (no allocations).
+        allocations: Dictionary of allocations where keys are DD names and values
+            are string data set allocation requests or lists of cataloged datasets.
+            Default is ``None`` (no allocations).
 
     Returns:
         TsoResponse: Response from the TSO/E command.
     """
     if allocations is None:
-        allocations = []
+        allocations = {}
 
     shell_script = tso_shell_script(
         cmd=cmd,

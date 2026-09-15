@@ -10,6 +10,7 @@ test_run_subcmd_nodsname
 test_run_subcmd_dsname
     Test running subcommands against a dump
 """
+
 # pylint: disable=redefined-outer-name
 import pytest
 from pyipcs import IpcsSession, Subcmd
@@ -29,6 +30,7 @@ TEST_DSNAME_SUBCMDS = [
 ]
 
 TEST_NODSNAME_SUBCMDS = ["SETDEF LIST", "LISTDUMP", "OPCODE D203E02C7624"]
+
 
 @pytest.fixture(scope="session")
 def mock_subcmd_list_nodsname():
@@ -50,6 +52,7 @@ def mock_subcmd_list_nodsname():
     jcl_session.close()
 
     return mock_subcmd_list
+
 
 @pytest.fixture(scope="session")
 def mock_subcmd_dict_dsname():
@@ -108,7 +111,9 @@ def test_run_subcmd_nodsname(open_session_default, mock_subcmd_list_nodsname, ou
 
 
 @pytest.mark.parametrize("outfile", [False, True], ids=["string_output", "file_output"])
-def test_run_subcmd_dsname(open_session_default, test_dump, mock_subcmd_dict_dsname, outfile):
+def test_run_subcmd_dsname(
+    open_session_default, test_dump, mock_subcmd_dict_dsname, outfile
+):
     """
     Test running subcommands against a dump
     """

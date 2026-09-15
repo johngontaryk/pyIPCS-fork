@@ -6,6 +6,7 @@ Tests
 test_delete_file_method
     Test delete file using the delete file method.
 """
+
 # pylint: disable=consider-using-enumerate
 from pathlib import Path
 import pytest

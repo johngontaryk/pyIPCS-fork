@@ -10,11 +10,13 @@ test_set_dump
     Test IpcsSession.set_dump
 
 """
+
 # pylint: disable=redefined-outer-name
 import pytest
 from pyipcs import IpcsSession, Subcmd
 from ..conftest import TEST_ALLOCATIONS, TEST_DUMPS
 from ..mock_subcmd_jcl import mock_subcmd_jcl
+
 
 @pytest.fixture(scope="session")
 def mock_status_registers():
@@ -31,12 +33,13 @@ def mock_status_registers():
         test_ddir=jcl_session.ddir.dsname,
         test_allocations=TEST_ALLOCATIONS,
         test_subcmds=["STATUS REGISTERS"],
-        test_dsname=TEST_DUMPS[0]
+        test_dsname=TEST_DUMPS[0],
     )[0]
 
     jcl_session.close()
 
     return mock_subcmd
+
 
 @pytest.fixture(scope="function")
 def test_ddir(test_hlq, test_allocations):
@@ -50,7 +53,9 @@ def test_ddir(test_hlq, test_allocations):
     test_ddir_session.ddir._delete(test_ddir_ret)
 
 
-def test_init_dump(open_session_default, test_dump_single, test_ddir, mock_status_registers):
+def test_init_dump(
+    open_session_default, test_dump_single, test_ddir, mock_status_registers
+):
     """
     Test IpcsSession.init_dump
     """
@@ -61,7 +66,10 @@ def test_init_dump(open_session_default, test_dump_single, test_ddir, mock_statu
 
     open_session_default.init_dump(test_dump_single)
 
-    assert Subcmd(open_session_default, "STATUS REGISTERS").output == mock_status_registers.output
+    assert (
+        Subcmd(open_session_default, "STATUS REGISTERS").output
+        == mock_status_registers.output
+    )
 
     assert open_session_default.ddir.defaults().data["dsname"] == test_dump_single
 
@@ -79,7 +87,10 @@ def test_init_dump(open_session_default, test_dump_single, test_ddir, mock_statu
 
     assert open_session_default.ddir.defaults().data["dsname"] == test_dump_single
 
-    assert Subcmd(open_session_default, "STATUS REGISTERS").output == mock_status_registers.output
+    assert (
+        Subcmd(open_session_default, "STATUS REGISTERS").output
+        == mock_status_registers.output
+    )
 
     open_session_default.close()
 
@@ -97,19 +108,27 @@ def test_init_dump(open_session_default, test_dump_single, test_ddir, mock_statu
 
     assert open_session_default.ddir.defaults().data["dsname"] == test_dump_single
 
-    assert Subcmd(open_session_default, "STATUS REGISTERS").output == mock_status_registers.output
+    assert (
+        Subcmd(open_session_default, "STATUS REGISTERS").output
+        == mock_status_registers.output
+    )
 
     open_session_default.close()
 
 
-def test_set_dump(open_session_default, test_dump_single, test_ddir, mock_status_registers):
+def test_set_dump(
+    open_session_default, test_dump_single, test_ddir, mock_status_registers
+):
     """
     Test IpcsSession.set_dump
     """
 
     dump = open_session_default.init_dump(test_dump_single, ddir=test_ddir)
 
-    assert Subcmd(open_session_default, "STATUS REGISTERS").output == mock_status_registers.output
+    assert (
+        Subcmd(open_session_default, "STATUS REGISTERS").output
+        == mock_status_registers.output
+    )
 
     open_session_default.close()
     open_session_default.open()
@@ -120,4 +139,7 @@ def test_set_dump(open_session_default, test_dump_single, test_ddir, mock_status
 
     assert open_session_default.ddir.defaults().data["dsname"] == test_dump_single
 
-    assert Subcmd(open_session_default, "STATUS REGISTERS").output == mock_status_registers.output
+    assert (
+        Subcmd(open_session_default, "STATUS REGISTERS").output
+        == mock_status_registers.output
+    )

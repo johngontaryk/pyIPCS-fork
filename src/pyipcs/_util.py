@@ -9,7 +9,6 @@ from typing import TYPE_CHECKING
 
 from zoautil_py import datasets, zoau_io  # pylint: disable=import-error
 from ._tso import tso_cmd
-from .allocation import IpcsAllocation
 from .exceptions import TsoError
 
 if TYPE_CHECKING:
@@ -36,7 +35,7 @@ def attempt_recall(dsname: str) -> None:
     """
     tso_cmd(
         "TIME",
-        allocations=[IpcsAllocation("PYIPCS", dsname)],
+        allocations={"PYIPCS": dsname},
     )
 
 

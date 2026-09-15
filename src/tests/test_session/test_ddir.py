@@ -23,6 +23,7 @@ import pytest
 from zoautil_py import datasets
 from pyipcs import Hex
 
+
 @pytest.mark.parametrize(
     "test_session",
     ["open_session_default", "open_session_hlq"],
@@ -132,6 +133,7 @@ def test_create_ddir(test_session, test_hlq):
         if datasets.list_vsam_datasets(test_ddir2, migrated=True):
             test_session.ddir._delete(test_ddir2)
 
+
 def test_sources(open_session_default, test_dump_list):
     """
     Test DumpDirectory.sources method
@@ -156,6 +158,7 @@ def test_sources(open_session_default, test_dump_list):
     for test_dump in test_dumps_3_max:
         assert test_dump in test_sources_list, f"Test Dump: '{test_dump}'"
 
+
 def test_ddir_defaults(open_session_default, test_dump_single):
     """
     Test some DDIR defaults
@@ -173,10 +176,7 @@ def test_ddir_defaults(open_session_default, test_dump_single):
     assert setdef_subcmd.data["asid"] == Hex("12")
     assert setdef_subcmd.data["dspname"] == "TEST"
 
-    setdef_subcmd = open_session_default.ddir.defaults(
-        confirm=False,
-        dsname=None
-    )
+    setdef_subcmd = open_session_default.ddir.defaults(confirm=False, dsname=None)
 
     assert not setdef_subcmd.data["confirm"]
     assert setdef_subcmd.data["dsname"] is None

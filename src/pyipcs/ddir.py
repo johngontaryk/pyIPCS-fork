@@ -9,7 +9,6 @@ import random
 import warnings
 import weakref
 from typing import Self, IO, Optional
-from .allocation import IpcsAllocation
 from .dump import IpcsDump
 from ._util import check_dataset_exists, tso_profile_prefix
 from ._tso import tso_cmd
@@ -44,7 +43,7 @@ class IpcsDdir:
         self,
         dsname: str,
         driver: Optional[str] = None,
-        allocations: Optional[Iterable[IpcsAllocation]] = None,
+        allocations: Optional[dict[str, str | list[str]]] = None,
         parms: Optional[str | Iterable[str]] = None,
         delete: bool = False,
     ) -> None:
@@ -55,18 +54,16 @@ class IpcsDdir:
 
         Args:
             dsname: Data set name of the DDIR.
-            driver: Name of the pyIPCS driver data set — a PDSE that stores the
-                REXX and CLIST execs used to drive IPCS functionality. If the
-                data set does not exist, it will be created and populated on
-                initialization. Defaults to
-                ``<TSO_profile_prefix>.PYIPCS.V<pyIPCS_version>``.
-            allocations: Iterable of IPCS allocations. The default allocations
-                are dataset ``SYS1.PARMLIB`` for DD name ``IPCSPARM`` and
-                dataset ``SYS1.SBLSCLI0`` for DD name ``SYSPROC``.
+            driver: Name of the pyIPCS driver data set.
+                Contains REXX and CLIST execs used to drive IPCS functionality.
+                If the data set does not exist, it will be created and populated on initialization.
+                Defaults to ``<TSO_profile_prefix>.PYIPCS.V<pyIPCS_version>``.
+            allocations: Dictionary of IPCS allocations where keys are DD names
+                and values are string data set allocation requests or lists of cataloged datasets.
+                Defaults to ``{"IPCSPARM": "SYS1.PARMLIB", "SYSPROC": "SYS1.SBLSCLI0"}``
             parms: Additional parameters to pass to the ``BLSCDDIR`` CLIST.
                 May be a single string (e.g. ``'RECORDS(4000) VOLUME(MYVOL)'``)
-                or an iterable of string parms
-                (e.g. ``['RECORDS(4000)', 'VOLUME(MYVOL)']``).
+                or an iterable of string parms (e.g. ``['RECORDS(4000)', 'VOLUME(MYVOL)']``).
                 Default is ``None``.
             delete: If ``True``, the current DDIR is deleted via :meth:`delete`
                 when exiting the context manager (``with`` block), or when the
@@ -76,6 +73,7 @@ class IpcsDdir:
                 (e.g., in exception tracebacks). If ``False`` (the default),
                 the current DDIR will persist after the object is exited or
                 garbage-collected.
+                Default is ``False``.
 
         Note:
             If you do not know which allocations are needed in order to run IPCS
@@ -90,11 +88,8 @@ class IpcsDdir:
         """
         self._dsname = dsname.strip()
         if allocations is None:
-            allocations = [
-                IpcsAllocation("IPCSPARM", ["SYS1.PARMLIB"]),
-                IpcsAllocation("SYSPROC", ["SYS1.SBLSCLI0"]),
-            ]
-        self._allocations = copy.deepcopy(list(allocations))
+            allocations = {"IPCSPARM": "SYS1.PARMLIB", "SYSPROC": "SYS1.SBLSCLI0"}
+        self._allocations: dict[str, str | list[str]] = copy.deepcopy(allocations)
 
         # Run BLSCDDIR CLIST
         self._response: TsoResponse = IpcsDdir._blscddir(
@@ -125,8 +120,8 @@ class IpcsDdir:
         return self._driver
 
     @property
-    def allocations(self) -> list[IpcsAllocation]:
-        """Current IPCS allocations (deep copy)."""
+    def allocations(self) -> dict[str, str | list[str]]:
+        """Copy of the current IPCS allocations"""
         return copy.deepcopy(self._allocations)
 
     @property
@@ -147,11 +142,11 @@ class IpcsDdir:
             IpcsDdir._cleanup(self.dsname, self._delete_policy)
 
     @classmethod
-    def create_temp(
+    def tempddir(
         cls,
         hlq: Optional[str] = None,
         driver: Optional[str] = None,
-        allocations: Optional[Iterable[IpcsAllocation]] = None,
+        allocations: Optional[dict[str, str | list[str]]] = None,
         parms: Optional[str | Iterable[str]] = None,
         delete: bool = True,
     ) -> Self:
@@ -164,22 +159,26 @@ class IpcsDdir:
         Args:
             hlq: High-level qualifier prefix for the temporary DDIR name.
                 Defaults to ``<TSO_profile_prefix>.PYIPCS``.
-            driver: Name of the pyIPCS driver data set — a PDSE that stores the
-                REXX and CLIST execs used to drive IPCS functionality. If the
-                data set does not exist, it will be created and populated on
-                initialization. Defaults to
-                ``<TSO_profile_prefix>.PYIPCS.V<pyIPCS_version>``.
-            allocations: Iterable of IPCS allocations. The default allocations
-                are dataset ``SYS1.PARMLIB`` for DD name ``IPCSPARM`` and
-                dataset ``SYS1.SBLSCLI0`` for DD name ``SYSPROC``.
+            driver: Name of the pyIPCS driver data set.
+                Contains REXX and CLIST execs used to drive IPCS functionality.
+                If the data set does not exist, it will be created and populated on initialization.
+                Defaults to ``<TSO_profile_prefix>.PYIPCS.V<pyIPCS_version>``.
+            allocations: Dictionary of IPCS allocations where keys are DD names
+                and values are string data set allocation requests or lists of cataloged datasets.
+                Defaults to ``{"IPCSPARM": "SYS1.PARMLIB", "SYSPROC": "SYS1.SBLSCLI0"}``
             parms: Additional parameters to pass to the ``BLSCDDIR`` CLIST.
                 May be a single string (e.g. ``'RECORDS(4000) VOLUME(MYVOL)'``)
-                or an iterable of string parms
-                (e.g. ``['RECORDS(4000)', 'VOLUME(MYVOL)']``).
+                or an iterable of string parms (e.g. ``['RECORDS(4000)', 'VOLUME(MYVOL)']``).
                 Default is ``None``.
-            delete: If ``True`` (the default), the DDIR data set is deleted
-                automatically when the ``with`` block exits. If ``False``, the
-                data set is left in place.
+            delete: If ``True``, the current DDIR is deleted via :meth:`delete`
+                when exiting the context manager (``with`` block), or when the
+                :class:`pyipcs.IpcsDdir` instance is finalized by the garbage
+                collector. Deletion upon finalization is not guaranteed if the
+                process terminates abruptly or if the object remains referenced
+                (e.g., in exception tracebacks). If ``False``,
+                the current DDIR will persist after the object is exited or
+                garbage-collected.
+                Default is ``True``.
 
         Returns:
             IpcsDdir: A new :class:`IpcsDdir` instance backed by the generated
@@ -214,19 +213,20 @@ class IpcsDdir:
             dsname, driver=driver, allocations=allocations, parms=parms, delete=delete
         )
 
-    def set_allocations(self, allocations: Iterable[IpcsAllocation]) -> None:
+    def set_allocations(self, allocations: dict[str, str | list[str]]) -> None:
         """
         Replace the current IPCS allocations with a copy of the provided IPCS allocations.
 
         Args:
-            allocations: Iterable of allocations that will become the new IPCS
-                allocations.
+            allocations: Dictionary of allocations where keys are DD names and
+                values are string data set allocation requests or lists of
+                cataloged datasets.
 
         Note:
             If you do not know which allocations are needed in order to run IPCS
             on your current system, please reach out to your system administrator.
         """
-        self._allocations = copy.deepcopy(list(allocations))
+        self._allocations = copy.deepcopy(allocations)
 
     def delete(self) -> TsoResponse:
         """
@@ -323,7 +323,33 @@ class IpcsDdir:
         """
         return self.run(f"DROPDUMP DSNAME('{dsname}')")
 
-    def global_defaults(
+    def copy_ddir(
+        self,
+        ddir: IpcsDdir,
+        dump: IpcsDump,
+    ) -> IpcsResponse:
+        """
+        Copy the source description for a dump data set from another dump
+        directory into this dump directory by running
+        ``COPYDDIR INDSNAME(<ddir.dsname>) DSNAME(<dump.dsname>)``.
+
+        Args:
+            ddir: Source dump directory to copy the source description from.
+            dump: Dump data set whose source description is to be copied.
+
+        Returns:
+            IpcsResponse: Response from the ``COPYDDIR`` subcommand.
+
+        Raises:
+            DdirDeletedError: If this DDIR has already been deleted.
+
+        References:
+            - `COPYDDIR subcommand
+              <https://www.ibm.com/docs/en/zos/3.2.0?topic=is-copyddir-subcommand-copy-source-description-from-dump-directory>`_
+        """
+        return self.run(f"COPYDDIR INDSNAME('{ddir.dsname}') DSNAME('{dump.dsname}')")
+
+    def set_global_defaults(
         self,
         dump: Optional[IpcsDump] = None,
         parms: Optional[str | Iterable[str]] = None,
@@ -362,8 +388,7 @@ class IpcsDdir:
         if self._delete_policy["is_deleted"]:
             raise DdirDeletedError()
         subcmd = "SETDEF LIST GLOBAL"
-        if dump is not None:
-            subcmd += f" DSNAME('{dump.dsname}')"
+        subcmd += f" DSNAME('{dump.dsname}')" if dump is not None else ""
         if parms is not None:
             if not isinstance(parms, str):
                 parms = " ".join(parms)
@@ -426,15 +451,14 @@ class IpcsDdir:
         if self._delete_policy["is_deleted"]:
             raise DdirDeletedError()
 
-        # Pass Optional[str] to ipcs_subcmd
-        parsed_local_defaults = None
+        if local_defaults is not None and not isinstance(local_defaults, str):
+            local_defaults = " ".join(local_defaults)
+
         if dump is not None:
-            parsed_local_defaults = f"DSNAME('{dump.dsname}')"
-            if local_defaults is not None:
-                if isinstance(local_defaults, str):
-                    parsed_local_defaults += f" {local_defaults}"
-                else:
-                    parsed_local_defaults += f" {' '.join(local_defaults)}"
+            if local_defaults is None:
+                local_defaults = f"DSNAME('{dump.dsname}')"
+            else:
+                local_defaults = f"DSNAME('{dump.dsname}') {local_defaults}"
 
         return ipcs_subcmd(
             subcmd=subcmd,
@@ -442,9 +466,79 @@ class IpcsDdir:
             ddir=self._dsname,
             allocations=self._allocations,
             authorized=authorized,
-            local_defaults=parsed_local_defaults,
+            local_defaults=local_defaults,
             output=output,
         )
+
+    def evaluate(
+        self,
+        address: str,
+        offset: int,
+        length: int,
+        dump: Optional[IpcsDump] = None,
+        asid: Optional[str] = None,
+        dspname: Optional[str] = None,
+        local_defaults: Optional[str | Iterable[str]] = None,
+    ) -> str:
+        """
+        Read data directly from a dump.
+
+        Runs a pyIPCS driver exec which utilizes the ``EVALUATE`` subcommand.
+        The ``EVALUATE`` subcommand will refer to your defaults to determine
+        which dump data to refer to (e.g. which ASID or data space name).
+
+        Args:
+            address: Starting hex address to read from as a hex string
+                (e.g. ``'00F3A000'``).
+            offset: Byte offset from the starting address in decimal.
+            length: Byte length of data to access in decimal.
+            dump: Source dump data set to read from. If provided,
+                ``DSNAME(<dump.dsname>)`` is added to ``local_defaults`` so
+                the source does not carry over to future subcommands.
+                Default is ``None`` (use the globally set default source).
+            asid: Address space identifier as a hex string (e.g. ``'001A'``).
+                When provided, adds ``ASID(X'<asid>')`` to ``local_defaults``.
+                Default is ``None``.
+            dspname: Data space name. When provided, adds
+                ``DSPNAME(<dspname>)`` to ``local_defaults``.
+                Default is ``None``.
+            local_defaults: Additional parameters for
+                ``SETDEF NOLIST LOCAL`` run before the exec. May be a single
+                string or an iterable of strings. Default is ``None``.
+
+        Returns:
+            str: Hex string representing the data at the specified address.
+
+        Raises:
+            DdirDeletedError: If this DDIR has already been deleted.
+            IpcsInvalidReturnCodeError: If driver exec returns a non-zero return code.
+
+        References:
+            - `EVALUATE subcommand
+              <https://www.ibm.com/docs/en/zos/3.2.0?topic=subcommands-evaluate-subcommand-display-storage>`_
+            - `SETDEF subcommand
+              <https://www.ibm.com/docs/en/zos/3.2.0?topic=subcommands-setdef-subcommand-set-defaults>`_
+        """
+        evaluate_defaults = []
+        if asid is not None:
+            evaluate_defaults.append(f"ASID(X'{asid.upper()}')")
+        if dspname is not None:
+            evaluate_defaults.append(f"DSPNAME({dspname.upper()})")
+        if evaluate_defaults:
+            if local_defaults is None:
+                local_defaults = evaluate_defaults
+            elif isinstance(local_defaults, str):
+                local_defaults = evaluate_defaults + [local_defaults]
+            else:
+                local_defaults = evaluate_defaults + list(local_defaults)
+        response = self.run(
+            f"ex '{self._driver}(IPCSEVAL)' '{address.upper()} {offset} {length}'",
+            dump=dump,
+            local_defaults=local_defaults,
+        )
+        if response.rc != 0:
+            raise IpcsInvalidReturnCodeError(response)
+        return response.output.strip() if response.output else ""
 
     @staticmethod
     def _delete_ddir(dsname: str) -> TsoResponse:
@@ -463,7 +557,7 @@ class IpcsDdir:
         """
         response = tso_cmd(
             cmd=f"DELETE '{dsname}'",
-            allocations=[IpcsAllocation("PYIPCS", dsname)],
+            allocations={"PYIPCS": dsname},
         )
         if response.rc > 4:
             warnings.warn(TsoInvalidReturnCodeWarning(response), stacklevel=3)
@@ -473,7 +567,7 @@ class IpcsDdir:
     def _blscddir(
         dsname: str,
         parms: Optional[str | Iterable[str]],
-        allocations: list[IpcsAllocation],
+        allocations: dict[str, str | list[str]],
     ) -> TsoResponse:
         """
         Run the ``BLSCDDIR`` CLIST to create or open a dump directory (DDIR).
@@ -526,7 +620,7 @@ class IpcsDdir:
         # Verify we are using the same pyIPCS version
         response = tso_cmd(
             cmd=f"ex '{dsname}(IPCSVERS)'",
-            allocations=[IpcsAllocation("PYIPCS", [dsname])],
+            allocations={"PYIPCS": [dsname]},
         )
         if response.rc != 0 or f"PYIPCS={__version__}" not in response.output:
             raise TsoError(
