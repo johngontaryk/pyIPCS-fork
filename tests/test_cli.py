@@ -71,7 +71,7 @@ def test_handle_create_ddir(ddir_dsname, allocations_path):
 def test_handle_create_ddir_with_parms(ddir_dsname, allocations_path):
     """handle_create_ddir should forward parms to IpcsDdir and exit 0."""
     assert not check_dataset_exists(ddir_dsname)
-    args = Namespace(ddir=ddir_dsname, driver=None, allocations=allocations_path, parms="LENGTH(8) NOCONFIRM")
+    args = Namespace(ddir=ddir_dsname, driver=None, allocations=allocations_path, parms="RECORDS(3000)")
 
     with pytest.raises(SystemExit) as exc:
         handle_create_ddir(args)
