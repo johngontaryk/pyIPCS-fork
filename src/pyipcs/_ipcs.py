@@ -99,12 +99,23 @@ def ipcs_subcmd(
 
         # Determine if file object was provided and pipe output if provided
         pyipcs_rc = None
+        prev_line = None
         if output is not None:
             for line in tmp_file:
+                # Return code line - ends subcommand output
+                # Remove newline of prev line before write
                 if line.startswith("PYIPCS_RC="):
+                    if prev_line is not None:
+                        output.write(prev_line.rstrip("\n"))
                     pyipcs_rc = int(line.strip().split("=", 1)[1])
                     break
-                output.write(line)
+                # Write first line as the first prev line
+                if prev_line is None:
+                    prev_line = line
+                # Write line of subcommand output
+                else:
+                    output.write(prev_line)
+                    prev_line = line
             subcmd_output = None
         else:
             # If no file object was provided read in rest of IPCS subcommand output
