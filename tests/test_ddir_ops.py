@@ -37,17 +37,13 @@ def test_ddir_dump_delete(ddir_dsname, dump, ddir, dump_ddir):
         ddir.copy_ddir(dump_ddir, dump)
 
 
-def test_ddir_allocations(allocations, ddir):
+def test_ddir_allocations(ddir):
     """Test IpcsDdir allocations"""
-    assert ddir.allocations == allocations
-    allocations["PYTEST"] = ["PYTEST"]
-    assert ddir.allocations != allocations
-    allocations.pop("PYTEST")
-
     new_allocations = {"PYTEST": ["PYTEST"]}
     ddir.set_allocations(new_allocations)
-    assert ddir.allocations != allocations
     assert ddir.allocations == new_allocations
+    new_allocations["PYTEST2"] = ["PYTEST2"]
+    assert ddir.allocations != new_allocations
 
 
 def test_copy_ddir_drop_dump(dump, ddir, dump_ddir):
