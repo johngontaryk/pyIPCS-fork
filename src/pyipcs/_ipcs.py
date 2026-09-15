@@ -84,7 +84,7 @@ def ipcs_subcmd(
             )
         except Exception as e:
             tmp_file.seek(0)
-            for _ in range(3):
+            for _ in range(2):
                 tmp_file.readline()
             err_output = tmp_file.read()
             raise TsoError(
@@ -94,7 +94,7 @@ def ipcs_subcmd(
 
         # Skip the first lines which are not output of the subcommand
         tmp_file.seek(0)
-        for _ in range(3):
+        for _ in range(2):
             tmp_file.readline()
 
         # Determine if file object was provided and pipe output if provided
@@ -114,7 +114,7 @@ def ipcs_subcmd(
                     pyipcs_rc = int(line.strip().split("=", 1)[1])
                     break
                 lines.append(line)
-            subcmd_output = "".join(lines)
+            subcmd_output = "".join(lines).rstrip("\n")
 
     if pyipcs_rc is None:
         raise IpcsError(
