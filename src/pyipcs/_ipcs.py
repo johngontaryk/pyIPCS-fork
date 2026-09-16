@@ -92,30 +92,51 @@ def ipcs_subcmd(
                 output=err_output,
             ) from e
 
+        # Structure of subcommand CLIST output:
+        #   <Output Header 2 lines>
+        #   <Subcommand Output>
+        #   <newline>
+        #   PYIPCS_RC=<Subcommand return code>
+
         # Skip the first lines which are not output of the subcommand
         tmp_file.seek(0)
         for _ in range(2):
             tmp_file.readline()
 
-        # Determine if file object was provided and pipe output if provided
+        # Determine if IO object was provided and pipe output if provided
         pyipcs_rc = None
-        prev_line = None
         if output is not None:
+            # For IO path read/write each line individually to avoid Python memory issues
+            # 
+            # Store newline just in case it is a trailing newline
+            # before the return code output
+            pending_newline = False
+            prev_line = None
             for line in tmp_file:
-                # Return code line - ends subcommand output
-                # Remove newline of prev line before write
                 if line.startswith("PYIPCS_RC="):
+                    # Return code output - end of subcommand output found
+                    pyipcs_rc = int(line.strip().split("=", 1)[1])
+                    # Write the possible left over line with no newline - end of output
                     if prev_line is not None:
                         output.write(prev_line.rstrip("\n"))
-                    pyipcs_rc = int(line.strip().split("=", 1)[1])
                     break
-                # Write first line as the first prev line
-                if prev_line is None:
-                    prev_line = line
-                # Write line of subcommand output
+                if line == "\n" and not pending_newline:
+                    # Newline seen and not 2 in a row - do nothing
+                    pending_newline = True
                 else:
-                    output.write(prev_line)
-                    prev_line = line
+                    # We hit some content that needs to be written
+                    # Flush stored previous line and/or pending newline
+                    if prev_line is not None:
+                        output.write(prev_line)
+                        prev_line = None
+                    if pending_newline:
+                        output.write("\n")
+                        pending_newline = False
+                    # Determine what the current line is
+                    if line == "\n":
+                        pending_newline = True
+                    else:
+                        prev_line = line
             subcmd_output = None
         else:
             # If no file object was provided read in rest of IPCS subcommand output
