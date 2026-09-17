@@ -68,7 +68,7 @@ def test_subcmd_defaults_dump(dump, dump_ddir, allocations, ipcs_subcmd_job):
 def test_subcmd_output(ddir, allocations, ipcs_subcmd_job):
     """Test subcommand output against job output."""
 
-    subcmds = ["SETDEF LIST", "OPCODE E303"]
+    subcmds = ["SETDEF LIST", "LISTDUMP"]
 
     job_outputs = ipcs_subcmd_job(
         ddir=ddir,
