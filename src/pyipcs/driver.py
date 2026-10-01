@@ -1,12 +1,19 @@
 """
-Public Utility Functions
+Driver Functions
 """
 
-from zoautil_py import datasets, zoau_io, exceptions  # pylint: disable=import-error
+from zoautil_py import datasets, exceptions  # pylint: disable=import-error
 from pyipcs.exceptions import TsoError
 from ._execs import IPCSVERS, IPCSRUN, IPCSSRC, IPCSEVAL
-from ._util import get_dataset, check_dataset_exists, tso_profile_prefix
+from ._util import check_dataset_exists, tso_profile_prefix, validate_content
 from ._version import __version__
+
+_DRIVER_MEMBERS = {
+    "IPCSVERS": IPCSVERS,
+    "IPCSRUN": IPCSRUN,
+    "IPCSSRC": IPCSSRC,
+    "IPCSEVAL": IPCSEVAL,
+}
 
 
 def default_driver_dsname() -> str:
@@ -41,41 +48,38 @@ def create_driver(dsname: str) -> None:
         raise ValueError(f"Data set {dsname} already exists")
     try:
         datasets.create(dsname, dataset_type="PDSE")
-        datasets.write(f"{dsname}(IPCSVERS)", content=IPCSVERS)
-        datasets.write(f"{dsname}(IPCSRUN)", content=IPCSRUN)
-        datasets.write(f"{dsname}(IPCSSRC)", content=IPCSSRC)
-        datasets.write(f"{dsname}(IPCSEVAL)", content=IPCSEVAL)
+        for member_name, content in _DRIVER_MEMBERS.items():
+            datasets.write(f"{dsname}({member_name})", content=content)
     except exceptions.DatasetWriteException as e:
         datasets.delete(dsname)
         raise TsoError("Failed to create pyIPCS driver data set {dsname}") from e
 
 
-def is_dump(dsname: str) -> bool:
+def validate_driver(dsname: str) -> bool:
     """
-    Determine whether a data set exists and is a z/OS dump data set.
+    Validate an existing pyIPCS driver data set.
+
+    Confirms that the driver data set exists,
+    and contains all required members with expected contents
 
     Args:
-        dsname: Data set name.
+        dsname: The fully-qualified driver data set name.
 
     Returns:
-        bool: ``True`` if the data set exists and is a dump data set,
-        ``False`` otherwise.
+        bool: ``True`` if the driver data set exists and is valid, ``False`` otherwise.
     """
-    # Check if the data set exists and perform checks
-    dump_dataset_obj = get_dataset(dsname)
-    if dump_dataset_obj is None:
+    if not check_dataset_exists(dsname):
         return False
-    if int(dump_dataset_obj.record_length) != 4160:
+
+    try:
+        members = datasets.list_members(dsname)
+    except Exception:  # pylint: disable=broad-except
         return False
-    if int(dump_dataset_obj.block_size) % int(dump_dataset_obj.record_length) != 0:
-        return False
-    # Check if first record starts with DR2
-    if (
-        not zoau_io.RecordIO(f"//'{dsname}'")
-        .readrecord()
-        .hex()
-        .upper()
-        .startswith("C4D9F2")
-    ):
-        return False
+
+    for member_name, expected_content in _DRIVER_MEMBERS.items():
+        if member_name not in members:
+            return False
+        if not validate_content(f"{dsname}({member_name})", expected_content):
+            return False
+
     return True

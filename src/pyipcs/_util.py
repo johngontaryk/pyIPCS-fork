@@ -8,7 +8,7 @@ import os
 from typing import TYPE_CHECKING
 
 from zoautil_py import datasets, zoau_io  # pylint: disable=import-error
-from ._tso import tso_cmd
+from ._tso_cmd import tso_cmd
 from .exceptions import TsoError
 
 if TYPE_CHECKING:
@@ -111,6 +111,26 @@ def assert_dataset_exists(dsname: str) -> None:
     attempt_recall(dsname)
     if not datasets.exists(dsname):
         raise TsoError(f"Data set {dsname} does not exist")
+
+
+def validate_content(dsname: str, expected: str) -> bool:
+    """
+    Validate that data set content matches expected content.
+
+    Args:
+        dsname: Data set (or data set member) name to read and validate.
+        expected: Expected reference content.
+
+    Returns:
+        bool: ``True`` if the data set exists and contents match after normalization,
+        ``False`` otherwise.
+    """
+    if not check_dataset_exists(dsname):
+        return False
+    content = datasets.read(dsname)
+    content_norm = "\n".join(line.rstrip() for line in content.splitlines()).strip()
+    expected_norm = "\n".join(line.rstrip() for line in expected.splitlines()).strip()
+    return content_norm == expected_norm
 
 
 def get_header_record(dump: IpcsDump) -> bytes | None:

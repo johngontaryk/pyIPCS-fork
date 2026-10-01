@@ -11,9 +11,9 @@ import weakref
 from typing import Self, IO, Optional
 from .dump import IpcsDump
 from ._util import check_dataset_exists, tso_profile_prefix
-from ._tso import tso_cmd
+from ._tso_cmd import tso_cmd
 from ._version import __version__
-from ._ipcs import ipcs_subcmd
+from ._ipcs_subcmd import ipcs_subcmd
 from .exceptions import (
     TsoError,
     TsoInvalidReturnCodeError,
@@ -21,7 +21,7 @@ from .exceptions import (
     IpcsInvalidReturnCodeError,
     DdirDeletedError,
 )
-from .util import default_driver_dsname, create_driver
+from .driver import default_driver_dsname, create_driver, validate_driver
 from .response import TsoResponse, IpcsResponse
 
 
@@ -105,7 +105,11 @@ class IpcsDdir:
         # Create/Load driver data set
         self._driver = driver.strip() if driver else default_driver_dsname()
         if check_dataset_exists(self._driver):
-            IpcsDdir._validate_driver(self._driver)
+            if not validate_driver(self._driver):
+                raise TsoError(
+                    f"pyIPCS driver data set {self._driver} already exists and is invalid "
+                    f"or does not match the current pyIPCS version"
+                )
         else:
             create_driver(self._driver)
 
@@ -602,31 +606,6 @@ class IpcsDdir:
         if response.rc >= 12:
             raise TsoInvalidReturnCodeError(response)
         return response
-
-    @staticmethod
-    def _validate_driver(dsname: str) -> None:
-        """
-        Validate an existing pyIPCS driver data set.
-
-        Confirms the driver is valid and matches the current pyIPCS version.
-
-        Args:
-            dsname: The fully-qualified driver data set name.
-
-        Raises:
-            TsoError: If the driver is invalid or does not match the current
-                pyIPCS version.
-        """
-        # Verify we are using the same pyIPCS version
-        response = tso_cmd(
-            cmd=f"ex '{dsname}(IPCSVERS)'",
-            allocations={"PYIPCS": [dsname]},
-        )
-        if response.rc != 0 or f"PYIPCS={__version__}" not in response.output:
-            raise TsoError(
-                f"pyIPCS driver data set {dsname} already exists and is invalid "
-                f"or does not match the current pyIPCS version"
-            )
 
     @staticmethod
     def _cleanup(dsname: str, delete_policy: dict) -> None:

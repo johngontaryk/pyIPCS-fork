@@ -11,7 +11,7 @@ import pytest
 from zoautil_py import datasets, jobs
 from pyipcs import IpcsDump, IpcsDdir
 from pyipcs._util import tso_profile_prefix, check_dataset_exists
-from pyipcs.util import default_driver_dsname
+from pyipcs.driver import default_driver_dsname
 
 
 # ==============================================================================

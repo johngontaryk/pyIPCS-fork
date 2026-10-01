@@ -6,7 +6,7 @@ import datetime
 
 from ._util import get_header_record
 from .exceptions import TsoError
-from .util import is_dump
+from .ipcs import is_dump
 
 
 class IpcsDump:
@@ -26,7 +26,7 @@ class IpcsDump:
                 f"Data set {dsname} does not exist or is not a z/OS dump data set."
             )
         self._dsname = dsname
-        self._header = self._parse_header_record()
+        self._metadata = self._parse_header_record()
 
     @property
     def dsname(self) -> str:
@@ -34,9 +34,9 @@ class IpcsDump:
         return self._dsname
 
     @property
-    def header(self) -> dict | None:
+    def metadata(self) -> dict | None:
         """Parsed dump header metadata, or ``None`` if the header record was not found."""
-        return self._header
+        return self._metadata
 
     def _parse_header_record(self) -> dict | None:
         """
@@ -55,7 +55,7 @@ class IpcsDump:
 
         dump_type_map = {1: "SAD", 2: "SVC", 3: "SYSM", 4: "SLIP"}
         # PRD64DUMPT: Dump type
-        header_metadata["dump_type"] = dump_type_map.get(
+        header_metadata["type"] = dump_type_map.get(
             int.from_bytes(header_record[36:37], byteorder="big"),
             None,
         )

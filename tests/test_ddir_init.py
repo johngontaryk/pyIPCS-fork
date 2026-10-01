@@ -4,32 +4,8 @@ Test IpcsDdir constructor
 
 from zoautil_py import datasets
 from pyipcs import IpcsDdir
-from pyipcs.util import default_driver_dsname
-from pyipcs._execs import IPCSVERS, IPCSRUN, IPCSSRC, IPCSEVAL
+from pyipcs.driver import default_driver_dsname, validate_driver
 from pyipcs._util import check_dataset_exists, tso_profile_prefix
-
-
-def _assert_driver(dsname: str) -> None:
-    """Assert that a driver dataset exists and contains the correct execs."""
-    assert check_dataset_exists(dsname)
-
-    members = datasets.list_members(dsname)
-    expected_members = ["IPCSVERS", "IPCSRUN", "IPCSSRC", "IPCSEVAL"]
-    for member in expected_members:
-        assert member in members, f"Member {member} is missing from driver {dsname}"
-
-    def _assert_exec(member_name: str, expected_content: str) -> None:
-        """Read and check the contents of the exec member."""
-        content = datasets.read(f"{dsname}({member_name})")
-        normalize = lambda s: "\n".join(line.rstrip() for line in s.splitlines()).strip()
-        assert (
-            normalize(content) == normalize(expected_content)
-        ), f"Content of {member_name} does not match expected content"
-
-    _assert_exec("IPCSVERS", IPCSVERS)
-    _assert_exec("IPCSRUN", IPCSRUN)
-    _assert_exec("IPCSSRC", IPCSSRC)
-    _assert_exec("IPCSEVAL", IPCSEVAL)
 
 
 def test_ddir_init_default(ddir_dsname, allocations):
@@ -43,18 +19,18 @@ def test_ddir_init_default(ddir_dsname, allocations):
         assert ddir.dsname == ddir_dsname
         assert check_dataset_exists(ddir_dsname)
         assert ddir.driver == default_driver
-        _assert_driver(default_driver)
+        assert validate_driver(default_driver)
 
     # Check DDIR and driver persist after DDIR creation
     assert check_dataset_exists(ddir_dsname)
-    _assert_driver(default_driver)
+    assert validate_driver(default_driver)
 
     # Check we can reuse DDIR and driver
     with IpcsDdir(ddir_dsname, allocations=allocations) as ddir:
         assert ddir.dsname == ddir_dsname
         assert check_dataset_exists(ddir_dsname)
         assert ddir.driver == default_driver
-        _assert_driver(default_driver)
+        assert validate_driver(default_driver)
 
 
 def test_ddir_init_custom_driver(ddir_dsname, driver_dsname, allocations):
@@ -69,11 +45,11 @@ def test_ddir_init_custom_driver(ddir_dsname, driver_dsname, allocations):
         assert ddir.dsname == ddir_dsname
         assert check_dataset_exists(ddir_dsname)
         assert ddir.driver == driver_dsname
-        _assert_driver(driver_dsname)
+        assert validate_driver(driver_dsname)
 
     # Check DDIR and driver persist after DDIR creation
     assert check_dataset_exists(ddir_dsname)
-    _assert_driver(driver_dsname)
+    assert validate_driver(driver_dsname)
 
     # Check we can reuse DDIR and driver
     with IpcsDdir(
@@ -82,7 +58,7 @@ def test_ddir_init_custom_driver(ddir_dsname, driver_dsname, allocations):
         assert ddir.dsname == ddir_dsname
         assert check_dataset_exists(ddir_dsname)
         assert ddir.driver == driver_dsname
-        _assert_driver(driver_dsname)
+        assert validate_driver(driver_dsname)
 
 
 def test_ddir_init_delete(ddir_dsname, allocations):
