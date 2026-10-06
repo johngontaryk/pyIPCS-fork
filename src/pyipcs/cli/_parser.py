@@ -8,7 +8,7 @@ import argparse
 
 from ._commands import (
     handle_create_ddir,
-    handle_global_defaults,
+    handle_setdef_global,
     handle_init_dump,
     handle_run,
 )
@@ -25,19 +25,20 @@ def parser_create_ddir(
     )
     add_common_args(p)
     p.add_argument(
-        "--parms",
+        "--ddir-parms",
+        dest="ddir_parms",
         default=None,
         help="Additional parameters to pass to the BLSCDDIR CLIST.",
     )
     p.set_defaults(func=handle_create_ddir)
 
 
-def parser_global_defaults(
+def parser_setdef_global(
     subparsers: argparse._SubParsersAction[argparse.ArgumentParser],
 ) -> None:
-    """Register the ``global-defaults`` subparser."""
+    """Register the ``setdef-global`` subparser."""
     p = subparsers.add_parser(
-        "global-defaults",
+        "setdef-global",
         help="Set global defaults on an existing DDIR.",
     )
     add_common_args(p)
@@ -48,11 +49,11 @@ def parser_global_defaults(
         help="Source dump data set name to set as the global default.",
     )
     p.add_argument(
-        "--parms",
+        "--defaults",
         default=None,
-        help="Additional parameters to pass to the global defaults command.",
+        help="Additional parameters to pass to the setdef-global command.",
     )
-    p.set_defaults(func=handle_global_defaults)
+    p.set_defaults(func=handle_setdef_global)
 
 
 def parser_init_dump(

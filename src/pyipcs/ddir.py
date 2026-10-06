@@ -44,7 +44,7 @@ class IpcsDdir:
         dsname: str,
         driver: Optional[str] = None,
         allocations: Optional[dict[str, str | list[str]]] = None,
-        parms: Optional[str | Iterable[str]] = None,
+        ddir_parms: Optional[str | Iterable[str]] = None,
         delete: bool = False,
     ) -> None:
         """
@@ -61,7 +61,7 @@ class IpcsDdir:
             allocations: Dictionary of IPCS allocations where keys are DD names
                 and values are string data set allocation requests or lists of cataloged datasets.
                 Defaults to ``{"IPCSPARM": "SYS1.PARMLIB", "SYSPROC": "SYS1.SBLSCLI0"}``
-            parms: Additional parameters to pass to the ``BLSCDDIR`` CLIST.
+            ddir_parms: Additional parameters to pass to the ``BLSCDDIR`` CLIST.
                 May be a single string (e.g. ``'RECORDS(4000) VOLUME(MYVOL)'``)
                 or an iterable of string parms (e.g. ``['RECORDS(4000)', 'VOLUME(MYVOL)']``).
                 Default is ``None``.
@@ -93,7 +93,7 @@ class IpcsDdir:
 
         # Run BLSCDDIR CLIST
         self._response: TsoResponse = IpcsDdir._blscddir(
-            self._dsname, parms, self._allocations
+            self._dsname, ddir_parms, self._allocations
         )
 
         # Set delete policy and create finalizer
@@ -151,7 +151,7 @@ class IpcsDdir:
         hlq: Optional[str] = None,
         driver: Optional[str] = None,
         allocations: Optional[dict[str, str | list[str]]] = None,
-        parms: Optional[str | Iterable[str]] = None,
+        ddir_parms: Optional[str | Iterable[str]] = None,
         delete: bool = True,
     ) -> Self:
         """
@@ -170,7 +170,7 @@ class IpcsDdir:
             allocations: Dictionary of IPCS allocations where keys are DD names
                 and values are string data set allocation requests or lists of cataloged datasets.
                 Defaults to ``{"IPCSPARM": "SYS1.PARMLIB", "SYSPROC": "SYS1.SBLSCLI0"}``
-            parms: Additional parameters to pass to the ``BLSCDDIR`` CLIST.
+            ddir_parms: Additional parameters to pass to the ``BLSCDDIR`` CLIST.
                 May be a single string (e.g. ``'RECORDS(4000) VOLUME(MYVOL)'``)
                 or an iterable of string parms (e.g. ``['RECORDS(4000)', 'VOLUME(MYVOL)']``).
                 Default is ``None``.
@@ -214,7 +214,7 @@ class IpcsDdir:
                 f"after {max_attempts} attempts."
             )
         return cls(
-            dsname, driver=driver, allocations=allocations, parms=parms, delete=delete
+            dsname, driver=driver, allocations=allocations, ddir_parms=ddir_parms, delete=delete
         )
 
     def set_allocations(self, allocations: dict[str, str | list[str]]) -> None:
@@ -298,7 +298,7 @@ class IpcsDdir:
         Note:
             This will not set the global source dump default. To run future
             subcommands against the dump data set you must specify the ``dump``
-            parameter for :meth:`set_global_defaults` or :meth:`run`.
+            parameter for :meth:`setdef_global` or :meth:`run`.
 
         References:
             - `SETDEF subcommand
@@ -353,21 +353,21 @@ class IpcsDdir:
         """
         return self.run(f"COPYDDIR INDSNAME('{ddir.dsname}') DSNAME('{dump.dsname}')")
 
-    def set_global_defaults(
+    def setdef_global(
         self,
         dump: Optional[IpcsDump] = None,
-        parms: Optional[str | Iterable[str]] = None,
+        defaults: Optional[str | Iterable[str]] = None,
     ) -> IpcsResponse:
         """
         Global defaults for the current dump directory.
 
-        Runs ``SETDEF LIST GLOBAL <parms>``. These defaults carry over to future
+        Runs ``SETDEF LIST GLOBAL <defaults>``. These defaults carry over to future
         subcommands for the current dump directory (DDIR).
 
         Args:
             dump: Dump data set. When provided, sets the global default source
-                dump by adding ``DSNAME(<dump.dsname>)`` to ``parms``.
-            parms: Additional parameters to pass to ``SETDEF LIST GLOBAL``.
+                dump by adding ``DSNAME(<dump.dsname>)`` to ``defaults``.
+            defaults: Additional parameters to pass to ``SETDEF LIST GLOBAL``.
                 May be a single string (e.g. ``'FLAG(WARNING) CONFIRM(NO)'``)
                 or an iterable of string parms
                 (e.g. ``['FLAG(WARNING)', 'CONFIRM(NO)']``).
@@ -393,10 +393,10 @@ class IpcsDdir:
             raise DdirDeletedError()
         subcmd = "SETDEF LIST GLOBAL"
         subcmd += f" DSNAME('{dump.dsname}')" if dump is not None else ""
-        if parms is not None:
-            if not isinstance(parms, str):
-                parms = " ".join(parms)
-            subcmd += f" {parms}"
+        if defaults is not None:
+            if not isinstance(defaults, str):
+                defaults = " ".join(defaults)
+            subcmd += f" {defaults}"
         return self.run(subcmd)
 
     def run(
@@ -444,7 +444,7 @@ class IpcsDdir:
             specified subcommand ran during the ``SETDEF NOLIST LOCAL``.
 
             If you have exclusive access to the DDIR, using
-            :meth:`set_global_defaults` once up front is faster than passing
+            :meth:`setdef_global` once up front is faster than passing
             ``dump``/``local_defaults`` per call, as it avoids a
             ``SETDEF NOLIST LOCAL`` on every invocation.
 
@@ -570,7 +570,7 @@ class IpcsDdir:
     @staticmethod
     def _blscddir(
         dsname: str,
-        parms: Optional[str | Iterable[str]],
+        ddir_parms: Optional[str | Iterable[str]],
         allocations: dict[str, str | list[str]],
     ) -> TsoResponse:
         """
@@ -578,7 +578,7 @@ class IpcsDdir:
 
         Args:
             dsname: The fully-qualified DDIR data set name.
-            parms: Additional parameters to pass to ``BLSCDDIR``.
+            ddir_parms: Additional parameters to pass to ``BLSCDDIR``.
             allocations: IPCS allocations to use for the TSO command.
 
         Returns:
@@ -587,12 +587,12 @@ class IpcsDdir:
         Raises:
             TsoInvalidReturnCodeError: If ``BLSCDDIR`` returns a return code >= 12.
         """
-        if parms is None:
+        if ddir_parms is None:
             parms_list: list[str] = []
-        elif isinstance(parms, str):
-            parms_list = [parms]
+        elif isinstance(ddir_parms, str):
+            parms_list = [ddir_parms]
         else:
-            parms_list = list(parms)
+            parms_list = list(ddir_parms)
         cmd = f"%BLSCDDIR DSNAME('{dsname}')"
         if parms_list:
             cmd += f" {' '.join(parms_list)}"

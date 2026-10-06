@@ -8,7 +8,7 @@ import argparse
 
 from ._parser import (
     parser_create_ddir,
-    parser_global_defaults,
+    parser_setdef_global,
     parser_init_dump,
     parser_run,
 )
@@ -27,7 +27,7 @@ def main() -> None:
     subparsers.required = True
 
     parser_create_ddir(subparsers)
-    parser_global_defaults(subparsers)
+    parser_setdef_global(subparsers)
     parser_init_dump(subparsers)
     parser_run(subparsers)
 

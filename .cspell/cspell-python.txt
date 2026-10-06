@@ -1,3 +1,5 @@
+addfinalizer
+addinivalue
 addoption
 autouse
 capsys
@@ -9,6 +11,7 @@ getfixturevalue
 ipynb
 kwargs
 metafunc
+modifyitems
 pylint
 pytest
 readrecords

@@ -58,11 +58,11 @@ def ipcs_subcmd(
         escaped_setdef = local_defaults.replace("'", "''''")
         cmd = (
             f"ex '{driver}(IPCSRUN)' "
-            f"'SUBCMD(''{escaped_subcmd}'') "
-            f"SETDEFLOCAL(''SETDEF NOLIST LOCAL {escaped_setdef}'')'"
+            f"'SUB(''{escaped_subcmd}'') "
+            f"LOC(''SETDEF NOLIST LOCAL {escaped_setdef}'')'"
         )
     else:
-        cmd = f"ex '{driver}(IPCSRUN)' 'SUBCMD(''{escaped_subcmd}'')'"
+        cmd = f"ex '{driver}(IPCSRUN)' 'SUB(''{escaped_subcmd}'')'"
 
     shell_script = tso_shell_script(
         cmd=cmd,

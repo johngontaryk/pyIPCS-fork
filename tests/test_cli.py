@@ -8,11 +8,11 @@ from argparse import Namespace
 
 import pytest
 
-from pyipcs import IpcsDdir
 from pyipcs._util import check_dataset_exists
 from pyipcs.cli._commands import (
     handle_create_ddir,
-    handle_global_defaults,
+    handle_init_dump,
+    handle_setdef_global,
     handle_run,
 )
 
@@ -59,7 +59,7 @@ def _exit_code(exc: pytest.ExceptionInfo[SystemExit]) -> int:
 def test_handle_create_ddir(ddir_dsname, allocations_path):
     """handle_create_ddir should create the DDIR and exit 0."""
     assert not check_dataset_exists(ddir_dsname)
-    args = Namespace(ddir=ddir_dsname, driver=None, allocations=allocations_path, parms=None)
+    args = Namespace(ddir=ddir_dsname, driver=None, allocations=allocations_path, ddir_parms=None)
 
     with pytest.raises(SystemExit) as exc:
         handle_create_ddir(args)
@@ -68,10 +68,10 @@ def test_handle_create_ddir(ddir_dsname, allocations_path):
     assert check_dataset_exists(ddir_dsname)
 
 
-def test_handle_create_ddir_with_parms(ddir_dsname, allocations_path):
-    """handle_create_ddir should forward parms to IpcsDdir and exit 0."""
+def test_handle_create_ddir_with_ddir_parms(ddir_dsname, allocations_path):
+    """handle_create_ddir should forward ddir_parms to IpcsDdir and exit 0."""
     assert not check_dataset_exists(ddir_dsname)
-    args = Namespace(ddir=ddir_dsname, driver=None, allocations=allocations_path, parms="RECORDS(3000)")
+    args = Namespace(ddir=ddir_dsname, driver=None, allocations=allocations_path, ddir_parms="RECORDS(3000)")
 
     with pytest.raises(SystemExit) as exc:
         handle_create_ddir(args)
@@ -80,27 +80,23 @@ def test_handle_create_ddir_with_parms(ddir_dsname, allocations_path):
     assert check_dataset_exists(ddir_dsname)
 
 
-def test_handle_global_defaults(ddir_dsname, allocations, allocations_path, capsys):
-    """handle_global_defaults should set defaults and exit with rc < 8."""
-    with IpcsDdir(ddir_dsname, allocations=allocations):
-        pass
-    args = Namespace(ddir=ddir_dsname, driver=None, allocations=allocations_path, dump=None, parms=None)
+def test_handle_setdef_global(default_ddir, allocations_path, capsys):
+    """handle_setdef_global should set defaults and exit with rc < 8."""
+    args = Namespace(ddir=default_ddir.dsname, driver=None, allocations=allocations_path, dump=None, defaults=None)
 
     with pytest.raises(SystemExit) as exc:
-        handle_global_defaults(args)
+        handle_setdef_global(args)
 
     assert _exit_code(exc) < 8
     assert "LENGTH(4)" in capsys.readouterr().out
 
 
-def test_handle_global_defaults_with_parms(ddir_dsname, allocations, allocations_path, capsys):
-    """handle_global_defaults should forward parms and exit with rc < 8."""
-    with IpcsDdir(ddir_dsname, allocations=allocations):
-        pass
-    args = Namespace(ddir=ddir_dsname, driver=None, allocations=allocations_path, dump=None, parms="LENGTH(8) NOCONFIRM")
+def test_handle_setdef_global_with_defaults(default_ddir, allocations_path, capsys):
+    """handle_setdef_global should forward defaults and exit with rc < 8."""
+    args = Namespace(ddir=default_ddir.dsname, driver=None, allocations=allocations_path, dump=None, defaults="LENGTH(8) NOCONFIRM")
 
     with pytest.raises(SystemExit) as exc:
-        handle_global_defaults(args)
+        handle_setdef_global(args)
 
     assert _exit_code(exc) < 8
     out = capsys.readouterr().out
@@ -108,23 +104,35 @@ def test_handle_global_defaults_with_parms(ddir_dsname, allocations, allocations
     assert "NOCONFIRM" in out
 
 
-def test_handle_global_defaults_with_dump(dump, dump_ddir_dsname, allocations_path, capsys):
-    """handle_global_defaults should set the dump as global default when dump is given."""
-    args = Namespace(ddir=dump_ddir_dsname, driver=None, allocations=allocations_path, dump=dump.dsname, parms=None)
+@pytest.mark.dump
+def test_handle_init_dump(dump, default_ddir, allocations_path, capsys):
+    """handle_init_dump should initialize the dump in the DDIR and exit 0."""
+    args = Namespace(ddir=default_ddir.dsname, driver=None, allocations=allocations_path, dump=dump.dsname)
 
     with pytest.raises(SystemExit) as exc:
-        handle_global_defaults(args)
+        handle_init_dump(args)
+
+    assert _exit_code(exc) == 0
+    assert "Dump initialization successful." in capsys.readouterr().out
+    assert dump.dsname in default_ddir.sources()
+
+
+@pytest.mark.dump
+def test_handle_setdef_global_with_dump(dump, dump_ddir_dsname, allocations_path, capsys):
+    """handle_setdef_global should set the dump as global default when dump is given."""
+    args = Namespace(ddir=dump_ddir_dsname, driver=None, allocations=allocations_path, dump=dump.dsname, defaults=None)
+
+    with pytest.raises(SystemExit) as exc:
+        handle_setdef_global(args)
 
     assert _exit_code(exc) < 8
     assert f"DSNAME('{dump.dsname}')" in capsys.readouterr().out
 
 
-def test_handle_run(ddir_dsname, allocations, allocations_path, capsys):
+def test_handle_run(default_ddir, allocations_path, capsys):
     """handle_run should run the subcommand and exit with rc < 8."""
-    with IpcsDdir(ddir_dsname, allocations=allocations):
-        pass
     args = Namespace(
-        ddir=ddir_dsname, driver=None, allocations=allocations_path,
+        ddir=default_ddir.dsname, driver=None, allocations=allocations_path,
         subcmd="SETDEF LIST", dump=None, auth=False, local_defaults=None,
     )
 
@@ -135,6 +143,7 @@ def test_handle_run(ddir_dsname, allocations, allocations_path, capsys):
     assert "LENGTH(4)" in capsys.readouterr().out
 
 
+@pytest.mark.dump
 def test_handle_run_with_dump(dump, dump_ddir_dsname, allocations_path, capsys):
     """handle_run should include the dump in the subcommand run when dump is given."""
     args = Namespace(
@@ -149,12 +158,10 @@ def test_handle_run_with_dump(dump, dump_ddir_dsname, allocations_path, capsys):
     assert f"DSNAME('{dump.dsname}')" in capsys.readouterr().out
 
 
-def test_handle_run_authorized(ddir_dsname, allocations, allocations_path):
+def test_handle_run_authorized(default_ddir, allocations_path):
     """handle_run should run the subcommand in an authorized environment."""
-    with IpcsDdir(ddir_dsname, allocations=allocations):
-        pass
     args = Namespace(
-        ddir=ddir_dsname, driver=None, allocations=allocations_path,
+        ddir=default_ddir.dsname, driver=None, allocations=allocations_path,
         subcmd="SETDEF LIST", dump=None, auth=True, local_defaults=None,
     )
 
@@ -164,12 +171,10 @@ def test_handle_run_authorized(ddir_dsname, allocations, allocations_path):
     assert _exit_code(exc) < 8
 
 
-def test_handle_run_local_defaults(ddir_dsname, allocations, allocations_path, capsys):
+def test_handle_run_local_defaults(default_ddir, allocations_path, capsys):
     """handle_run should apply local_defaults for this run only."""
-    with IpcsDdir(ddir_dsname, allocations=allocations):
-        pass
     args = Namespace(
-        ddir=ddir_dsname, driver=None, allocations=allocations_path,
+        ddir=default_ddir.dsname, driver=None, allocations=allocations_path,
         subcmd="SETDEF LIST", dump=None, auth=False, local_defaults="LENGTH(8) NOCONFIRM",
     )
 

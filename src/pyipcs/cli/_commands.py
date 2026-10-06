@@ -18,22 +18,22 @@ def handle_create_ddir(args: argparse.Namespace) -> None:
         args.ddir,
         driver=args.driver,
         allocations=load_allocations(args.allocations),
-        parms=args.parms,
+        ddir_parms=args.ddir_parms,
     )
     print(ddir.response.output, end="")
     sys.exit(ddir.response.rc)
 
 
-def handle_global_defaults(args: argparse.Namespace) -> None:
-    """Handle the ``global-defaults`` command."""
+def handle_setdef_global(args: argparse.Namespace) -> None:
+    """Handle the ``setdef-global`` command."""
     ddir = IpcsDdir(
         args.ddir,
         driver=args.driver,
         allocations=load_allocations(args.allocations),
     )
-    response = ddir.set_global_defaults(
+    response = ddir.setdef_global(
         dump=IpcsDump(args.dump) if args.dump else None,
-        parms=args.parms,
+        defaults=args.defaults,
     )
     print(response.output, end="")
     sys.exit(response.rc)

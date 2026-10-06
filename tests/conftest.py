@@ -4,7 +4,7 @@ Pytest configuration for pyIPCS
 
 import json
 import warnings
-from typing import Any, Iterable, Optional
+from typing import Iterable, Optional
 from collections.abc import Generator
 import pytest
 
@@ -19,34 +19,58 @@ from pyipcs.driver import default_driver_dsname
 # ==============================================================================
 
 
-def cleanup_test_dataset(dsname: str) -> bool:
-    """Delete a data set if it exists."""
-    if check_dataset_exists(dsname):
-        rc = datasets.delete(dsname)
-        if rc != 0:
-            warnings.warn(f"Could not delete test data set '{dsname}': rc={rc}")
-            return False
-    return True
+def cleanup_test_datasets(standard: list[str] = [], ddirs: list[str] = []) -> None:
+    """Delete test datasets and DDIRs, then verify all were removed.
 
+    Attempts to delete every dataset and DDIR in the provided lists. Issues a
+    warning for each deletion that returns a non-zero RC. After all deletions
+    are attempted, checks for any datasets that still exist and calls
+    ``pytest.exit`` with the full list of survivors if any remain.
 
-def cleanup_test_ddir(dsname: str) -> bool:
-    """Delete a DDIR if it exists."""
-    if check_dataset_exists(dsname):
-        response = IpcsDdir._delete_ddir(dsname)
-        if response.rc != 0:
-            warnings.warn(
-                f"Could not delete test data set '{dsname}': rc={response.rc}"
-            )
-            return False
-    return True
+    Args:
+        standard: List of standard dataset names to delete via ``datasets.delete``.
+        ddirs: List of DDIR dataset names to delete via ``IpcsDdir._delete_ddir``.
+    """
+    # First pass — attempt deletions, warn on non-zero RC
+    for dsname in standard:
+        if check_dataset_exists(dsname):
+            rc = datasets.delete(dsname)
+            if rc != 0:
+                warnings.warn(
+                    f"Data set deletion exited with non-zero return code for test data set '{dsname}': rc={rc}"
+                )
+
+    for dsname in ddirs:
+        if check_dataset_exists(dsname):
+            response = IpcsDdir._delete_ddir(dsname)
+            if response.rc != 0:
+                warnings.warn(
+                    f"Data set deletion exited with non-zero return code for test data set '{dsname}': rc={response.rc}"
+                )
+
+    # Second pass — collect anything that still exists
+    still_exist: list[str] = []
+    for dsname in standard:
+        if check_dataset_exists(dsname):
+            still_exist.append(dsname)
+    for dsname in ddirs:
+        if check_dataset_exists(dsname):
+            still_exist.append(dsname)
+
+    if still_exist:
+        pytest.exit(
+            "Failed to remove the following test data sets:\n"
+            + "\n".join(f"  {ds}" for ds in still_exist)
+        )
 
 
 # ==============================================================================
 # Stash Keys
 # ==============================================================================
 
-DUMP_KEY: pytest.StashKey[IpcsDump | None] = pytest.StashKey()
+DUMP_DSNAME_KEY: pytest.StashKey[str | None] = pytest.StashKey()
 ALLOCATIONS_KEY: pytest.StashKey[dict[str, str | list[str]] | None] = pytest.StashKey()
+DDIR_PARMS_KEY: pytest.StashKey[str | None] = pytest.StashKey()
 HLQ_KEY: pytest.StashKey[str] = pytest.StashKey()
 DRIVER_DSNAME_KEY: pytest.StashKey[str] = pytest.StashKey()
 DDIR_DSNAME_KEY: pytest.StashKey[str] = pytest.StashKey()
@@ -58,13 +82,6 @@ DUMP_DDIR_DSNAME_KEY: pytest.StashKey[str] = pytest.StashKey()
 
 
 def pytest_addoption(parser: pytest.Parser) -> None:
-    parser.addoption(
-        "--dump",
-        action="store",
-        default=None,
-        metavar="DSNAME",
-        help="Data set name of the dump to use in tests.",
-    )
     parser.addoption(
         "--allocations",
         action="store",
@@ -78,6 +95,23 @@ def pytest_addoption(parser: pytest.Parser) -> None:
         ),
     )
     parser.addoption(
+        "--ddir-parms",
+        action="store",
+        default=None,
+        metavar="PARMS",
+        help=(
+            "Additional parameters to pass to the BLSCDDIR CLIST when creating DDIRs in tests. "
+            "Default is None."
+        ),
+    )
+    parser.addoption(
+        "--dump",
+        action="store",
+        default=None,
+        metavar="DSNAME",
+        help="Data set name of the dump to use in tests.",
+    )
+    parser.addoption(
         "--hlq",
         action="store",
         default=None,
@@ -89,37 +123,64 @@ def pytest_addoption(parser: pytest.Parser) -> None:
     )
 
 
+def pytest_collection_modifyitems(
+    config: pytest.Config, items: list[pytest.Item]
+) -> None:
+    # Skip tests marked with ``dump`` when no test dump data set was provided.
+    if config.stash[DUMP_DSNAME_KEY] is None:
+        skip = pytest.mark.skip(reason="--dump not provided")
+        for item in items:
+            if item.get_closest_marker("dump"):
+                item.add_marker(skip)
+
+
 def pytest_configure(config: pytest.Config) -> None:
-    allocations_path = config.getoption("--allocations", default=None)
+
+    # Setup markers
+    config.addinivalue_line("markers", "dump: marks tests that make use of a provided test dump")
+
+    # Load allocations from optionally provided JSON file
+    allocations_path = config.getoption("--allocations")
     if allocations_path is None:
         config.stash[ALLOCATIONS_KEY] = None
     else:
         with open(allocations_path, encoding="utf-8") as f:
             config.stash[ALLOCATIONS_KEY] = json.load(f)
 
-    hlq = config.getoption("--hlq", default=None) or f"{tso_profile_prefix()}.PYTEST"
+    config.stash[DDIR_PARMS_KEY] = config.getoption("--ddir-parms")
+    config.stash[DUMP_DSNAME_KEY] = config.getoption("--dump")
+
+    hlq = config.getoption("--hlq") or f"{tso_profile_prefix()}.PYTEST"
     config.stash[HLQ_KEY] = hlq
     config.stash[DRIVER_DSNAME_KEY] = f"{hlq}.DRIVER"
     config.stash[DDIR_DSNAME_KEY] = f"{hlq}.TESTDDIR"
     config.stash[DUMP_DDIR_DSNAME_KEY] = f"{hlq}.DUMPDDIR"
 
-    dump_dsname = config.getoption("--dump", default=None)
-    config.stash[DUMP_KEY] = None if dump_dsname is None else IpcsDump(dump_dsname)
+    # Cleanup all test data sets
+    cleanup_test_datasets(
+        standard=[default_driver_dsname(), config.stash[DRIVER_DSNAME_KEY]],
+        ddirs=[config.stash[DDIR_DSNAME_KEY], config.stash[DUMP_DDIR_DSNAME_KEY]]
+        + [ds.name for ds in datasets.list_vsam_datasets(f"{tso_profile_prefix()}.PYIPCS.DDIR*")]
+        + [ds.name for ds in datasets.list_vsam_datasets(f"{hlq}.DDIR*")],
+    )
 
-    # Initialize dump if provided
-    dump = config.stash[DUMP_KEY]
-    if not cleanup_test_ddir(config.stash[DUMP_DDIR_DSNAME_KEY]):
-        pytest.exit("Failed to delete test data set")
-    if dump is not None:
+    # Initialize dump if provided to reuse over multiple tests
+    dump_dsname = config.stash[DUMP_DSNAME_KEY]
+    if dump_dsname is not None:
+        # Initialize dump
+        dump = IpcsDump(dump_dsname)
         with IpcsDdir(
             config.stash[DUMP_DDIR_DSNAME_KEY],
             allocations=config.stash[ALLOCATIONS_KEY],
+            ddir_parms=config.stash[DDIR_PARMS_KEY],
         ) as pytest_ddir:
             pytest_ddir.init_dump(dump)
             if dump.dsname not in pytest_ddir.sources():
                 pytest.exit(
-                    f"Failed to initialize '{dump.dsname}' in DDIR '{config.stash[DUMP_DDIR_DSNAME_KEY]}'"
+                    f"Failed to initialize '{dump.dsname}' in test DDIR '{config.stash[DUMP_DDIR_DSNAME_KEY]}'"
                 )
+
+        # Check DDIR exists for rest of tests
         if not check_dataset_exists(config.stash[DUMP_DDIR_DSNAME_KEY]):
             pytest.exit(
                 f"Test dump DDIR '{config.stash[DUMP_DDIR_DSNAME_KEY]}' did not persist after dump initialization"
@@ -127,23 +188,26 @@ def pytest_configure(config: pytest.Config) -> None:
 
 
 # ==============================================================================
-# Fixtures
+# Standard Fixtures
 # ==============================================================================
-
-
-@pytest.fixture(scope="session")
-def dump(request: pytest.FixtureRequest) -> IpcsDump:
-    """IpcsDump built from the data set name passed via --dump. Skips the test if not provided."""
-    result = request.config.stash[DUMP_KEY]
-    if result is None:
-        pytest.skip("--dump not provided")
-    return result
 
 
 @pytest.fixture(scope="session")
 def allocations(request: pytest.FixtureRequest) -> dict[str, str | list[str]] | None:
     """Allocations dict loaded from the JSON file passed via ``--allocations``."""
     return request.config.stash[ALLOCATIONS_KEY]
+
+
+@pytest.fixture(scope="session")
+def ddir_parms(request: pytest.FixtureRequest) -> str | None:
+    """Additional BLSCDDIR parameters passed via ``--ddir-parms``."""
+    return request.config.stash[DDIR_PARMS_KEY]
+
+
+@pytest.fixture(scope="session")
+def dump_dsname(request: pytest.FixtureRequest) -> str | None:
+    """Dump data set name str passed via --dump."""
+    return request.config.stash[DUMP_DSNAME_KEY]
 
 
 @pytest.fixture(scope="session")
@@ -169,67 +233,77 @@ def dump_ddir_dsname(request: pytest.FixtureRequest) -> str:
     """Data set name for the dump test DDIR."""
     return request.config.stash[DUMP_DDIR_DSNAME_KEY]
 
+# ==============================================================================
+# Setup/Cleanup Fixtures
+# ==============================================================================
 
 @pytest.fixture(scope="session", autouse=True)
 def environment(
+    request: pytest.FixtureRequest,
     dump_ddir_dsname: str,
-) -> Generator[None, Any, None]:
+) -> None:
     """Test session setup and cleanup."""
-    yield
-    if not cleanup_test_ddir(dump_ddir_dsname):
-        pytest.exit(f"Failed to delete test data sets")
+
+    def _cleanup() -> None:
+        # Delete DDIR with provided test dump
+        cleanup_test_datasets(ddirs=[dump_ddir_dsname])
+
+    request.addfinalizer(_cleanup)
 
 
 @pytest.fixture(autouse=True)
 def reset_state(
+    request: pytest.FixtureRequest,
     hlq: str,
     driver_dsname: str,
     ddir_dsname: str,
-) -> Generator[None, Any, None]:
-    """Delete leftover test data sets before and after each test."""
+) -> None:
+    """Delete leftover test data sets after each test."""
 
-    def cleanup_test_datasets():
-        failures: list[str] = []
-        for dsname in [default_driver_dsname(), driver_dsname]:
-            if not cleanup_test_dataset(dsname):
-                failures.append(dsname)
-        if not cleanup_test_ddir(ddir_dsname):
-            failures.append(ddir_dsname)
-        for dataset in datasets.list_vsam_datasets(
-            f"{tso_profile_prefix()}.PYIPCS.DDIR*"
-        ):
-            if not cleanup_test_ddir(dataset.name):
-                failures.append(dataset.name)
-        for dataset in datasets.list_vsam_datasets(f"{hlq}.DDIR*"):
-            if not cleanup_test_ddir(dataset.name):
-                failures.append(dataset.name)
-        if failures:
-            pytest.exit("Failed to delete test data sets")
+    def _cleanup() -> None:
+        cleanup_test_datasets(
+            standard=[default_driver_dsname(), driver_dsname],
+            ddirs=[ddir_dsname]
+            + [ds.name for ds in datasets.list_vsam_datasets(f"{tso_profile_prefix()}.PYIPCS.DDIR*")]
+            + [ds.name for ds in datasets.list_vsam_datasets(f"{hlq}.DDIR*")],
+        )
 
-    cleanup_test_datasets()
-    yield
-    cleanup_test_datasets()
+    request.addfinalizer(_cleanup)
+
+# ==============================================================================
+# Dump/DDir Fixtures
+# ==============================================================================
 
 
 @pytest.fixture
-def ddir(allocations, ddir_dsname) -> Generator[IpcsDdir, None, None]:
+def default_ddir(allocations, ddir_parms, ddir_dsname) -> Generator[IpcsDdir, None, None]:
     """DDIR with no dump initialized. DDIR deleted per test."""
     with IpcsDdir(
         ddir_dsname,
         allocations=allocations,
+        ddir_parms=ddir_parms,
         delete=True,
     ) as pytest_ddir:
         yield pytest_ddir
 
 
 @pytest.fixture
-def dump_ddir(dump, allocations, dump_ddir_dsname) -> Generator[IpcsDdir, None, None]:
+def dump(dump_dsname) -> IpcsDump:
+    """Dump data set (IpcsDump)."""
+    if dump_dsname is None:
+        pytest.exit("Fixture used but --dump not provided")
+    return IpcsDump(dump_dsname)
+
+
+@pytest.fixture
+def dump_ddir(dump, allocations, ddir_parms, dump_ddir_dsname) -> Generator[IpcsDdir, None, None]:
     """DDIR with dump initialized. Skips the test if no dump was provided."""
     if dump is None:
-        pytest.skip("--dump not provided")
+        pytest.exit("Fixture user but --dump not provided")
     with IpcsDdir(
         dump_ddir_dsname,
         allocations=allocations,
+        ddir_parms=ddir_parms,
     ) as pytest_ddir:
         yield pytest_ddir
 
