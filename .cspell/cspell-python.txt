@@ -13,7 +13,9 @@ kwargs
 metafunc
 modifyitems
 pylint
+pylintrc
 pytest
+rcfile
 readrecords
 repr
 subshell
