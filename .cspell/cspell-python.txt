@@ -6,6 +6,7 @@ autosummary
 autouse
 bysource
 capsys
+conftest
 docstrings
 finalizer
 furo
