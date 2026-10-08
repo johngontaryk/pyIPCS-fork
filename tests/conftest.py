@@ -72,7 +72,7 @@ ALLOCATIONS_KEY: pytest.StashKey[dict[str, str | list[str]] | None] = pytest.Sta
 DDIR_PARMS_KEY: pytest.StashKey[str | None] = pytest.StashKey()
 HLQ_KEY: pytest.StashKey[str] = pytest.StashKey()
 DRIVER_DSNAME_KEY: pytest.StashKey[str] = pytest.StashKey()
-DDIR_DSNAME_KEY: pytest.StashKey[str] = pytest.StashKey()
+DEF_DDIR_DSNAME_KEY: pytest.StashKey[str] = pytest.StashKey()
 DUMP_DDIR_DSNAME_KEY: pytest.StashKey[str] = pytest.StashKey()
 
 # ==============================================================================
@@ -154,7 +154,7 @@ def pytest_configure(config: pytest.Config) -> None:
     hlq = config.getoption("--hlq") or f"{tso_profile_prefix()}.PYTEST"
     config.stash[HLQ_KEY] = hlq
     config.stash[DRIVER_DSNAME_KEY] = f"{hlq}.DRIVER"
-    config.stash[DDIR_DSNAME_KEY] = f"{hlq}.TESTDDIR"
+    config.stash[DEF_DDIR_DSNAME_KEY] = f"{hlq}.TESTDDIR"
     config.stash[DUMP_DDIR_DSNAME_KEY] = f"{hlq}.DUMPDDIR"
 
     # Cleanup Dump DDIR if needed
@@ -185,7 +185,7 @@ def pytest_configure(config: pytest.Config) -> None:
     # Cleanup the rest of the test data sets if needed
     cleanup_test_datasets(
         standard=[default_driver_dsname(), config.stash[DRIVER_DSNAME_KEY]],
-        ddirs=[config.stash[DUMP_DDIR_DSNAME_KEY]]
+        ddirs=[config.stash[DEF_DDIR_DSNAME_KEY]]
         + [
             ds.name
             for ds in datasets.list_vsam_datasets(
@@ -234,7 +234,7 @@ def driver_dsname(request: pytest.FixtureRequest) -> str:
 @pytest.fixture(scope="session")
 def ddir_dsname(request: pytest.FixtureRequest) -> str:
     """Data set name for the general-purpose test DDIR."""
-    return request.config.stash[DDIR_DSNAME_KEY]
+    return request.config.stash[DEF_DDIR_DSNAME_KEY]
 
 
 @pytest.fixture(scope="session")
