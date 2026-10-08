@@ -5,7 +5,7 @@ Driver Functions
 from zoautil_py import datasets, exceptions  # pylint: disable=import-error
 from pyipcs.exceptions import TsoError
 from ._execs import IPCSVERS, IPCSRUN, IPCSSRC, IPCSEVAL
-from ._util import check_dataset_exists, tso_profile_prefix, validate_content
+from ._util import check_dataset_exists, tso_profile_prefix
 from ._version import __version__
 
 _DRIVER_MEMBERS = {
@@ -84,7 +84,15 @@ def validate_driver(dsname: str) -> None:
             raise TsoError(
                 f"pyIPCS driver data set {dsname} is missing required member {member_name}"
             )
-        if not validate_content(f"{dsname}({member_name})", expected_content):
+        def normalize(s: str) -> str:
+            return "\n".join(line.rstrip() for line in s.splitlines()).strip()
+
+        content = datasets.read(f"{dsname}({member_name})")
+        actual_norm = normalize(content)
+        expected_norm = normalize(expected_content)
+        if actual_norm != expected_norm:
             raise TsoError(
-                f"pyIPCS driver data set {dsname} member {member_name} has unexpected content"
+                f"pyIPCS driver data set {dsname} member {member_name} has unexpected content\n"
+                f"[ACTUAL]:\n{repr(actual_norm)}\n"
+                f"[EXPECTED]:\n{repr(expected_norm)}"
             )

@@ -113,26 +113,6 @@ def assert_dataset_exists(dsname: str) -> None:
         raise TsoError(f"Data set {dsname} does not exist")
 
 
-def validate_content(dsname: str, expected: str) -> bool:
-    """
-    Validate that data set content matches expected content.
-
-    Args:
-        dsname: Data set (or data set member) name to read and validate.
-        expected: Expected reference content.
-
-    Returns:
-        bool: ``True`` if the data set exists and contents match after normalization,
-        ``False`` otherwise.
-    """
-    if not check_dataset_exists(dsname):
-        return False
-    content = datasets.read(dsname)
-    content_norm = "\n".join(line.strip() for line in content.splitlines()).strip()
-    expected_norm = "\n".join(line.strip() for line in expected.splitlines()).strip()
-    return content_norm == expected_norm
-
-
 def get_header_record(dump: IpcsDump) -> bytes | None:
     """
     Get the first z/OS dump header record in the dump data set.
