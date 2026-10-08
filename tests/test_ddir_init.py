@@ -39,7 +39,10 @@ def test_ddir_init_custom_driver(ddir_dsname, driver_dsname, allocations, ddir_p
 
     # Create DDIR
     with IpcsDdir(
-        ddir_dsname, driver=driver_dsname, allocations=allocations, ddir_parms=ddir_parms
+        ddir_dsname,
+        driver=driver_dsname,
+        allocations=allocations,
+        ddir_parms=ddir_parms,
     ) as ddir:
         assert ddir.dsname == ddir_dsname
         assert check_dataset_exists(ddir_dsname)
@@ -52,7 +55,10 @@ def test_ddir_init_custom_driver(ddir_dsname, driver_dsname, allocations, ddir_p
 
     # Check we can reuse DDIR and driver
     with IpcsDdir(
-        ddir_dsname, driver=driver_dsname, allocations=allocations, ddir_parms=ddir_parms
+        ddir_dsname,
+        driver=driver_dsname,
+        allocations=allocations,
+        ddir_parms=ddir_parms,
     ) as ddir:
         assert ddir.dsname == ddir_dsname
         assert check_dataset_exists(ddir_dsname)
@@ -67,7 +73,9 @@ def test_ddir_init_delete(ddir_dsname, allocations, ddir_parms):
     assert not check_dataset_exists(ddir_dsname)
 
     # Create DDIR using with
-    with IpcsDdir(ddir_dsname, allocations=allocations, ddir_parms=ddir_parms, delete=True) as ddir:
+    with IpcsDdir(
+        ddir_dsname, allocations=allocations, ddir_parms=ddir_parms, delete=True
+    ) as ddir:
         assert ddir.dsname == ddir_dsname
         assert check_dataset_exists(ddir_dsname)
 
@@ -75,7 +83,9 @@ def test_ddir_init_delete(ddir_dsname, allocations, ddir_parms):
     assert not check_dataset_exists(ddir_dsname)
 
     # Create DDIR using regular construction
-    ddir = IpcsDdir(ddir_dsname, allocations=allocations, ddir_parms=ddir_parms, delete=True)
+    ddir = IpcsDdir(
+        ddir_dsname, allocations=allocations, ddir_parms=ddir_parms, delete=True
+    )
     assert ddir.dsname == ddir_dsname
     assert check_dataset_exists(ddir_dsname)
 
@@ -93,7 +103,9 @@ def test_ddir_temp(hlq, allocations, ddir_parms):
         assert check_dataset_exists(temp_ddir_dsname)
     assert not check_dataset_exists(temp_ddir_dsname)
 
-    with IpcsDdir.temp_ddir(hlq=hlq, allocations=allocations, ddir_parms=ddir_parms) as ddir:
+    with IpcsDdir.temp_ddir(
+        hlq=hlq, allocations=allocations, ddir_parms=ddir_parms
+    ) as ddir:
         temp_ddir_dsname = ddir.dsname
         assert temp_ddir_dsname.startswith(hlq)
         assert check_dataset_exists(temp_ddir_dsname)
@@ -101,7 +113,9 @@ def test_ddir_temp(hlq, allocations, ddir_parms):
 
     # Test multiple temp DDIRs existing at once
     with IpcsDdir.temp_ddir(allocations=allocations, ddir_parms=ddir_parms) as ddir1:
-        with IpcsDdir.temp_ddir(allocations=allocations, ddir_parms=ddir_parms) as ddir2:
+        with IpcsDdir.temp_ddir(
+            allocations=allocations, ddir_parms=ddir_parms
+        ) as ddir2:
             temp_ddir_dsname1 = ddir1.dsname
             temp_ddir_dsname2 = ddir2.dsname
             assert temp_ddir_dsname1 != temp_ddir_dsname2

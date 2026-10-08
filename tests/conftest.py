@@ -13,7 +13,6 @@ from pyipcs import IpcsDump, IpcsDdir
 from pyipcs._util import tso_profile_prefix, check_dataset_exists
 from pyipcs.driver import default_driver_dsname
 
-
 # ==============================================================================
 # Helper Functions
 # ==============================================================================
@@ -137,7 +136,9 @@ def pytest_collection_modifyitems(
 def pytest_configure(config: pytest.Config) -> None:
 
     # Setup markers
-    config.addinivalue_line("markers", "dump: marks tests that make use of a provided test dump")
+    config.addinivalue_line(
+        "markers", "dump: marks tests that make use of a provided test dump"
+    )
 
     # Load allocations from optionally provided JSON file
     allocations_path = config.getoption("--allocations")
@@ -160,7 +161,12 @@ def pytest_configure(config: pytest.Config) -> None:
     cleanup_test_datasets(
         standard=[default_driver_dsname(), config.stash[DRIVER_DSNAME_KEY]],
         ddirs=[config.stash[DDIR_DSNAME_KEY], config.stash[DUMP_DDIR_DSNAME_KEY]]
-        + [ds.name for ds in datasets.list_vsam_datasets(f"{tso_profile_prefix()}.PYIPCS.DDIR*")]
+        + [
+            ds.name
+            for ds in datasets.list_vsam_datasets(
+                f"{tso_profile_prefix()}.PYIPCS.DDIR*"
+            )
+        ]
         + [ds.name for ds in datasets.list_vsam_datasets(f"{hlq}.DDIR*")],
     )
 
@@ -233,9 +239,11 @@ def dump_ddir_dsname(request: pytest.FixtureRequest) -> str:
     """Data set name for the dump test DDIR."""
     return request.config.stash[DUMP_DDIR_DSNAME_KEY]
 
+
 # ==============================================================================
 # Setup/Cleanup Fixtures
 # ==============================================================================
+
 
 @pytest.fixture(scope="session", autouse=True)
 def environment(
@@ -264,11 +272,17 @@ def reset_state(
         cleanup_test_datasets(
             standard=[default_driver_dsname(), driver_dsname],
             ddirs=[ddir_dsname]
-            + [ds.name for ds in datasets.list_vsam_datasets(f"{tso_profile_prefix()}.PYIPCS.DDIR*")]
+            + [
+                ds.name
+                for ds in datasets.list_vsam_datasets(
+                    f"{tso_profile_prefix()}.PYIPCS.DDIR*"
+                )
+            ]
             + [ds.name for ds in datasets.list_vsam_datasets(f"{hlq}.DDIR*")],
         )
 
     request.addfinalizer(_cleanup)
+
 
 # ==============================================================================
 # Dump/DDir Fixtures
@@ -276,7 +290,9 @@ def reset_state(
 
 
 @pytest.fixture
-def default_ddir(allocations, ddir_parms, ddir_dsname) -> Generator[IpcsDdir, None, None]:
+def default_ddir(
+    allocations, ddir_parms, ddir_dsname
+) -> Generator[IpcsDdir, None, None]:
     """DDIR with no dump initialized. DDIR deleted per test."""
     with IpcsDdir(
         ddir_dsname,
@@ -296,7 +312,9 @@ def dump(dump_dsname) -> IpcsDump:
 
 
 @pytest.fixture
-def dump_ddir(dump, allocations, ddir_parms, dump_ddir_dsname) -> Generator[IpcsDdir, None, None]:
+def dump_ddir(
+    dump, allocations, ddir_parms, dump_ddir_dsname
+) -> Generator[IpcsDdir, None, None]:
     """DDIR with dump initialized. Skips the test if no dump was provided."""
     if dump is None:
         pytest.exit("Fixture user but --dump not provided")
@@ -403,7 +421,9 @@ def ipcs_subcmd_job(
 
             if dump is not None:
                 if _local_defaults:
-                    setdef_line = f"SETDEF LOCAL LIST DSNAME('{dump.dsname}') {_local_defaults}"
+                    setdef_line = (
+                        f"SETDEF LOCAL LIST DSNAME('{dump.dsname}') {_local_defaults}"
+                    )
                 else:
                     setdef_line = f"SETDEF LOCAL LIST DSNAME('{dump.dsname}')"
             elif _local_defaults:
@@ -435,7 +455,9 @@ def ipcs_subcmd_job(
             datasets.write(dataset_name=jcl_temp_membername, content=jcl)
 
             # Create output dataset (SYSTSPRT target)
-            datasets.create(name=jcl_output_dsname, dataset_type="SEQ", record_format="VB")
+            datasets.create(
+                name=jcl_output_dsname, dataset_type="SEQ", record_format="VB"
+            )
             datasets.write(dataset_name=jcl_output_dsname, content="")
 
             # Submit and wait
@@ -486,4 +508,3 @@ def ipcs_subcmd_job(
         return outputs
 
     return _ipcs_subcmd_job
-
