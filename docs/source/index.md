@@ -36,7 +36,10 @@ examples/basic-examples
 :maxdepth: 1
 :caption: Contributing
 
-CONTRIBUTING.md
+contributing/CONTRIBUTING
+contributing/dev-setup
+contributing/running-tests
+contributing/writing-tests
 ```
 
 ## Description

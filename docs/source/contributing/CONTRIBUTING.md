@@ -1,13 +1,10 @@
-# Contributing to pyIPCS
+# Code Contribution Guidelines
 
-Thank you for your interest in contributing to pyIPCS! This guide will help you get started.
+This document describes the process for contributing code to pyIPCS — from forking the repository through getting your pull request merged.
 
-## Quick Links
+Before contributing, please review the project's [Code of Conduct](https://github.com/openmainframeproject/tsc/blob/master/process/contribution_guidelines.md) and [Developer Certificate of Origin (DCO)](https://github.com/openmainframeproject/tsc/blob/master/process/contribution_guidelines.md#developer-certificate-of-origin) requirements. All contributions must include a DCO sign-off.
 
-- [Code of Conduct](https://github.com/openmainframeproject/tsc/blob/master/process/contribution_guidelines.md)
-- [Developer Certificate of Origin (DCO)](https://github.com/openmainframeproject/tsc/blob/master/process/contribution_guidelines.md#developer-certificate-of-origin)
-
-## Getting Started
+## Contribution Workflow
 
 ### 1. Fork and Clone
 
@@ -17,34 +14,11 @@ git clone https://github.com/YOUR-USERNAME/pyIPCS.git
 cd pyIPCS
 ```
 
-### 2. Set Up Development Environment
+### 2. Set Up Your Environment
 
-```bash
-# Create and activate a virtual environment (recommended)
-python3 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
+See the [Development Environment Setup](dev-setup) guide for full instructions on creating a virtual environment, installing dependencies, configuring pre-commit hooks, and setting up your Git identity for DCO sign-off.
 
-```bash
-# Install development dependencies and pre-commit hooks
-pip install -r requirements-dev.txt
-pre-commit install
-pre-commit install --hook-type commit-msg
-```
-
-### 3. Configure Git & DCO (Developer Certificate of Origin)
-
-All contributions require a DCO sign-off. Configure your Git identity:
-
-```bash
-# Set your name and email for DCO sign-off
-git config user.name "<YOUR_NAME>"
-git config user.email "<YOUR_EMAIL>"
-```
-
-## Development Workflow
-
-### 1. Create a Branch
+### 3. Create a Branch
 
 ```bash
 # Fetch latest changes
@@ -54,16 +28,18 @@ git fetch upstream
 git checkout -b feature/your-feature-name upstream/develop
 ```
 
-### 2. Make Your Changes
+### 4. Make Your Changes
 
 - Write your code
 - Add tests for new functionality
 - Update documentation as needed
 - Follow the style guidelines (see below)
 
-### 3. Test Your Changes
+### 5. Test Your Changes
 
-### 4. Commit Your Changes
+See the [Running the Tests](running-tests) guide for instructions on running the test suite and available flags, and [Writing Tests](writing-tests) for markers, fixtures, and cleanup behavior.
+
+### 6. Commit Your Changes
 
 **Important:** All commits must include a DCO signoff.
 
@@ -76,13 +52,14 @@ git commit -s -m "Add feature: description of your changes"
 ```
 
 The `-s` flag adds a "Signed-off-by" line to your commit message:
+
 ```
 Add feature: description of your changes
 
 Signed-off-by: Your Name <your.email@example.com>
 ```
 
-### 5. Push and Create Pull Request
+### 7. Push and Create Pull Request
 
 ```bash
 # Push to your fork
