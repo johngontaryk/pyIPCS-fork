@@ -128,8 +128,8 @@ def validate_content(dsname: str, expected: str) -> bool:
     if not check_dataset_exists(dsname):
         return False
     content = datasets.read(dsname)
-    content_norm = "\n".join(line.rstrip() for line in content.splitlines()).strip()
-    expected_norm = "\n".join(line.rstrip() for line in expected.splitlines()).strip()
+    content_norm = "\n".join(line.strip() for line in content.splitlines()).strip()
+    expected_norm = "\n".join(line.strip() for line in expected.splitlines()).strip()
     return content_norm == expected_norm
 
 

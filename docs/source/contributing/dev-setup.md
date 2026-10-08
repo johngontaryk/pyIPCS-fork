@@ -17,7 +17,6 @@ Make sure you have all the necessary prerequisites and have pyIPCS correctly ins
 ```bash
 pip install -r requirements-dev.txt
 pre-commit install
-pre-commit install --hook-type commit-msg
 ```
 
 ## 4. Configure Git & DCO (Developer Certificate of Origin)
