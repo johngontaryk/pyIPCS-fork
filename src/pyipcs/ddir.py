@@ -51,7 +51,7 @@ class IpcsDdir:
         """
         Constructor for :class:`pyipcs.IpcsDdir`.
 
-        Runs ``BLSCDDIR DSNAME('<dsname>')`` to create or open the dump directory.
+        If the DDIR data set does not already exist, runs ``BLSCDDIR`` to create it.
 
         Args:
             dsname: Data set name of the DDIR.
@@ -71,6 +71,7 @@ class IpcsDdir:
             ddir_parms: Additional parameters to pass to the ``BLSCDDIR`` CLIST.
                 May be a single string (e.g. ``'RECORDS(4000) VOLUME(MYVOL)'``)
                 or an iterable of string parms (e.g. ``['RECORDS(4000)', 'VOLUME(MYVOL)']``).
+                Ignored if the DDIR data set already exists.
                 Default is ``None``.
             delete: If ``True``, the current DDIR is deleted via :meth:`delete`
                 when exiting the context manager (``with`` block), or when the
@@ -97,8 +98,8 @@ class IpcsDdir:
 
         # Set the default allocations
         self._allocations: dict[str, str | list[str]] = {
-            "IPCSPARM": "SYS1.PARMLIB", 
-            "SYSPROC": "SYS1.SBLSCLI0"
+            "IPCSPARM": "SYS1.PARMLIB",
+            "SYSPROC": "SYS1.SBLSCLI0",
         }
         # Set new allocations if provided
         if allocations is not None:
@@ -108,10 +109,12 @@ class IpcsDdir:
         self._tasklib: Optional[list[str]] = None
         self.set_tasklib(tasklib)
 
-        # Run BLSCDDIR CLIST
-        self._response: TsoResponse = IpcsDdir._blscddir(
-            self._dsname, ddir_parms, self._allocations
-        )
+        # Run BLSCDDIR CLIST to create the DDIR if it does not already exist
+        self._response: Optional[TsoResponse] = None
+        if not check_dataset_exists(self._dsname):
+            self._response = IpcsDdir._blscddir(
+                self._dsname, ddir_parms, self._allocations
+            )
 
         # Set delete policy and create finalizer
         self._delete_policy = {"delete": delete, "is_deleted": False}
@@ -147,8 +150,9 @@ class IpcsDdir:
         return list(self._tasklib) if self._tasklib is not None else None
 
     @property
-    def response(self) -> TsoResponse:
-        """Response from the ``BLSCDDIR`` command issued during initialization."""
+    def response(self) -> Optional[TsoResponse]:
+        """Response from the ``BLSCDDIR`` command issued during initialization,
+        or ``None`` if the DDIR already existed and ``BLSCDDIR`` was skipped."""
         return self._response
 
     @property
@@ -232,7 +236,11 @@ class IpcsDdir:
                 f"after {max_attempts} attempts."
             )
         return cls(
-            dsname, driver=driver, allocations=allocations, ddir_parms=ddir_parms, delete=delete
+            dsname,
+            driver=driver,
+            allocations=allocations,
+            ddir_parms=ddir_parms,
+            delete=delete,
         )
 
     def set_allocations(self, allocations: dict[str, str | list[str]]) -> None:
