@@ -52,10 +52,10 @@ def create_driver(dsname: str) -> None:
             datasets.write(f"{dsname}({member_name})", content=content)
     except exceptions.DatasetWriteException as e:
         datasets.delete(dsname)
-        raise TsoError("Failed to create pyIPCS driver data set {dsname}") from e
+        raise TsoError(f"Failed to create pyIPCS driver data set {dsname}") from e
 
 
-def validate_driver(dsname: str) -> bool:
+def validate_driver(dsname: str) -> None:
     """
     Validate an existing pyIPCS driver data set.
 
@@ -65,21 +65,26 @@ def validate_driver(dsname: str) -> bool:
     Args:
         dsname: The fully-qualified driver data set name.
 
-    Returns:
-        bool: ``True`` if the driver data set exists and is valid, ``False`` otherwise.
+    Raises:
+        TsoError: If the data set does not exist, its members cannot be listed,
+            a required member is missing, or a member's content does not match.
     """
     if not check_dataset_exists(dsname):
-        return False
+        raise TsoError(f"pyIPCS driver data set {dsname} does not exist")
 
     try:
         members = datasets.list_members(dsname)
-    except Exception:  # pylint: disable=broad-except
-        return False
+    except Exception as e:  # pylint: disable=broad-except
+        raise TsoError(
+            f"Failed to list members of pyIPCS driver data set {dsname}"
+        ) from e
 
     for member_name, expected_content in _DRIVER_MEMBERS.items():
         if member_name not in members:
-            return False
+            raise TsoError(
+                f"pyIPCS driver data set {dsname} is missing required member {member_name}"
+            )
         if not validate_content(f"{dsname}({member_name})", expected_content):
-            return False
-
-    return True
+            raise TsoError(
+                f"pyIPCS driver data set {dsname} member {member_name} has unexpected content"
+            )

@@ -122,11 +122,7 @@ class IpcsDdir:
         # Create/Load driver data set
         self._driver = driver.strip() if driver else default_driver_dsname()
         if check_dataset_exists(self._driver):
-            if not validate_driver(self._driver):
-                raise TsoError(
-                    f"pyIPCS driver data set {self._driver} already exists and is invalid "
-                    f"or does not match the current pyIPCS version"
-                )
+            validate_driver(self._driver)
         else:
             create_driver(self._driver)
 

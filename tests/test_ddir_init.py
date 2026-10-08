@@ -18,18 +18,18 @@ def test_ddir_init_default(ddir_dsname, allocations, ddir_parms):
         assert ddir.dsname == ddir_dsname
         assert check_dataset_exists(ddir_dsname)
         assert ddir.driver == default_driver
-        assert validate_driver(default_driver)
+        validate_driver(default_driver)
 
     # Check DDIR and driver persist after DDIR creation
     assert check_dataset_exists(ddir_dsname)
-    assert validate_driver(default_driver)
+    validate_driver(default_driver)
 
     # Check we can reuse DDIR and driver
     with IpcsDdir(ddir_dsname, allocations=allocations, ddir_parms=ddir_parms) as ddir:
         assert ddir.dsname == ddir_dsname
         assert check_dataset_exists(ddir_dsname)
         assert ddir.driver == default_driver
-        assert validate_driver(default_driver)
+        validate_driver(default_driver)
 
 
 def test_ddir_init_custom_driver(ddir_dsname, driver_dsname, allocations, ddir_parms):
@@ -47,11 +47,11 @@ def test_ddir_init_custom_driver(ddir_dsname, driver_dsname, allocations, ddir_p
         assert ddir.dsname == ddir_dsname
         assert check_dataset_exists(ddir_dsname)
         assert ddir.driver == driver_dsname
-        assert validate_driver(driver_dsname)
+        validate_driver(driver_dsname)
 
     # Check DDIR and driver persist after DDIR creation
     assert check_dataset_exists(ddir_dsname)
-    assert validate_driver(driver_dsname)
+    validate_driver(driver_dsname)
 
     # Check we can reuse DDIR and driver
     with IpcsDdir(
@@ -63,7 +63,7 @@ def test_ddir_init_custom_driver(ddir_dsname, driver_dsname, allocations, ddir_p
         assert ddir.dsname == ddir_dsname
         assert check_dataset_exists(ddir_dsname)
         assert ddir.driver == driver_dsname
-        assert validate_driver(driver_dsname)
+        validate_driver(driver_dsname)
 
 
 def test_ddir_init_delete(ddir_dsname, allocations, ddir_parms):

@@ -157,18 +157,8 @@ def pytest_configure(config: pytest.Config) -> None:
     config.stash[DDIR_DSNAME_KEY] = f"{hlq}.TESTDDIR"
     config.stash[DUMP_DDIR_DSNAME_KEY] = f"{hlq}.DUMPDDIR"
 
-    # Cleanup all test data sets
-    cleanup_test_datasets(
-        standard=[default_driver_dsname(), config.stash[DRIVER_DSNAME_KEY]],
-        ddirs=[config.stash[DDIR_DSNAME_KEY], config.stash[DUMP_DDIR_DSNAME_KEY]]
-        + [
-            ds.name
-            for ds in datasets.list_vsam_datasets(
-                f"{tso_profile_prefix()}.PYIPCS.DDIR*"
-            )
-        ]
-        + [ds.name for ds in datasets.list_vsam_datasets(f"{hlq}.DDIR*")],
-    )
+    # Cleanup Dump DDIR if needed
+    cleanup_test_datasets(ddirs=[config.stash[DUMP_DDIR_DSNAME_KEY]])
 
     # Initialize dump if provided to reuse over multiple tests
     dump_dsname = config.stash[DUMP_DSNAME_KEY]
@@ -191,6 +181,19 @@ def pytest_configure(config: pytest.Config) -> None:
             pytest.exit(
                 f"Test dump DDIR '{config.stash[DUMP_DDIR_DSNAME_KEY]}' did not persist after dump initialization"
             )
+
+    # Cleanup the rest of the test data sets if needed
+    cleanup_test_datasets(
+        standard=[default_driver_dsname(), config.stash[DRIVER_DSNAME_KEY]],
+        ddirs=[config.stash[DUMP_DDIR_DSNAME_KEY]]
+        + [
+            ds.name
+            for ds in datasets.list_vsam_datasets(
+                f"{tso_profile_prefix()}.PYIPCS.DDIR*"
+            )
+        ]
+        + [ds.name for ds in datasets.list_vsam_datasets(f"{hlq}.DDIR*")],
+    )
 
 
 # ==============================================================================
