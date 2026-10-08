@@ -85,7 +85,7 @@ def sliptrap(ddir: IpcsDdir, dump: IpcsDump) -> Optional[str]:
     return result if result else None
 
 
-def ipltime(ddir: IpcsDdir, dump: IpcsDump) -> Optional[str]:
+def ipl_time(ddir: IpcsDdir, dump: IpcsDump) -> Optional[str]:
     """
     Run ``IPLDATA`` and return the local IPL date/time in ISO 8601 format.
 
@@ -177,7 +177,7 @@ def storage_areas(ddir: IpcsDdir, dump: IpcsDump) -> Optional[dict]:
 
         - **"asids"** (list[str]): List of hex ASID strings present in the dump.
         - **"dspnames"** (dict[str, list[str]]): Mapping of hex ASID string to a
-          list of dataspace names dumped for that ASID. ASIDs without a data space
+          list of data space names dumped for that ASID. ASIDs without a data space
           are not included.
 
         Returns ``None`` if the subcommand return code is greater than 0 or

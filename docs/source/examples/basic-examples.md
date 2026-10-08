@@ -26,13 +26,13 @@ with IpcsDdir(DDIR_DSNAME) as ddir:
 
 ## Using a Temporary DDIR
 
-For one-off analysis, use `IpcsDdir.tempddir()` to create a temporary DDIR that is
+For one-off analysis, use `IpcsDdir.temp_ddir()` to create a temporary DDIR that is
 automatically deleted on exit:
 
 ```python
 from pyipcs import IpcsDdir, IpcsDump
 
-with IpcsDdir.tempddir() as ddir:
+with IpcsDdir.temp_ddir() as ddir:
     dump = IpcsDump("MY.DUMP.DSNAME")
     response = ddir.run("STATUS REGISTERS", dump=dump)
     print(response.output)
@@ -64,7 +64,7 @@ and return parsed results:
 from pyipcs import IpcsDdir, IpcsDump
 from pyipcs import ipcs
 
-with IpcsDdir.tempddir() as ddir:
+with IpcsDdir.temp_ddir() as ddir:
     dump = IpcsDump("MY.DUMP.DSNAME")
 
     # List all address spaces on the system at dump time
@@ -74,7 +74,7 @@ with IpcsDdir.tempddir() as ddir:
             print(f"ASID: {entry['asid']}  Job: {entry['jobname']}  ASCB: {entry['ascb']}")
 
     # Get IPL time
-    ipl = ipcs.ipltime(ddir, dump)
+    ipl = ipcs.ipl_time(ddir, dump)
     print(f"IPL time: {ipl}")
 
     # Decode an opcode
@@ -89,7 +89,7 @@ For large subcommand outputs, write directly to a file instead of buffering in m
 ```python
 from pyipcs import IpcsDdir, IpcsDump
 
-with IpcsDdir.tempddir() as ddir:
+with IpcsDdir.temp_ddir() as ddir:
     dump = IpcsDump("MY.DUMP.DSNAME")
 
     with open("/tmp/output.txt", "w", encoding="cp1047") as f:
@@ -99,6 +99,6 @@ with IpcsDdir.tempddir() as ddir:
 ## Best Practices
 
 1. **Use `IpcsDdir` as a context manager** — ensures resources are cleaned up properly
-2. **Use `IpcsDdir.tempddir()`** for one-off analysis to avoid managing DDIR data set names
+2. **Use `IpcsDdir.temp_ddir()`** for one-off analysis to avoid managing DDIR data set names
 3. **Pass `dump` per `run()` call** rather than using `setdef_global` unless you have exclusive DDIR access
 4. **Check `IpcsResponse.rc`** — a non-zero return code may indicate a subcommand issue

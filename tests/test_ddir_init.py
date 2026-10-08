@@ -85,23 +85,23 @@ def test_ddir_init_delete(ddir_dsname, allocations, ddir_parms):
 
 
 def test_ddir_temp(hlq, allocations, ddir_parms):
-    """Test tempddir classmethod alternate IpcsDdir constructor"""
+    """Test temp_ddir classmethod alternate IpcsDdir constructor"""
 
-    with IpcsDdir.tempddir(allocations=allocations, ddir_parms=ddir_parms) as ddir:
+    with IpcsDdir.temp_ddir(allocations=allocations, ddir_parms=ddir_parms) as ddir:
         temp_ddir_dsname = ddir.dsname
         assert temp_ddir_dsname.startswith(tso_profile_prefix())
         assert check_dataset_exists(temp_ddir_dsname)
     assert not check_dataset_exists(temp_ddir_dsname)
 
-    with IpcsDdir.tempddir(hlq=hlq, allocations=allocations, ddir_parms=ddir_parms) as ddir:
+    with IpcsDdir.temp_ddir(hlq=hlq, allocations=allocations, ddir_parms=ddir_parms) as ddir:
         temp_ddir_dsname = ddir.dsname
         assert temp_ddir_dsname.startswith(hlq)
         assert check_dataset_exists(temp_ddir_dsname)
     assert not check_dataset_exists(temp_ddir_dsname)
 
     # Test multiple temp DDIRs existing at once
-    with IpcsDdir.tempddir(allocations=allocations, ddir_parms=ddir_parms) as ddir1:
-        with IpcsDdir.tempddir(allocations=allocations, ddir_parms=ddir_parms) as ddir2:
+    with IpcsDdir.temp_ddir(allocations=allocations, ddir_parms=ddir_parms) as ddir1:
+        with IpcsDdir.temp_ddir(allocations=allocations, ddir_parms=ddir_parms) as ddir2:
             temp_ddir_dsname1 = ddir1.dsname
             temp_ddir_dsname2 = ddir2.dsname
             assert temp_ddir_dsname1 != temp_ddir_dsname2

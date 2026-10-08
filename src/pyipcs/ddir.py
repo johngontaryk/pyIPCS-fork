@@ -146,7 +146,7 @@ class IpcsDdir:
             IpcsDdir._cleanup(self.dsname, self._delete_policy)
 
     @classmethod
-    def tempddir(
+    def temp_ddir(
         cls,
         hlq: Optional[str] = None,
         driver: Optional[str] = None,

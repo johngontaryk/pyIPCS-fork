@@ -1,7 +1,0 @@
-dsname
-IPCSSRC
-IPCSVERS
-MYUSER
-nodsname
-rfind
-subshell
