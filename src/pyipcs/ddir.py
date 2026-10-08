@@ -46,6 +46,7 @@ class IpcsDdir:
         allocations: Optional[dict[str, str | list[str]]] = None,
         ddir_parms: Optional[str | Iterable[str]] = None,
         delete: bool = False,
+        tasklib: Optional[list[str]] = None,
     ) -> None:
         """
         Constructor for :class:`pyipcs.IpcsDdir`.
@@ -74,6 +75,12 @@ class IpcsDdir:
                 the current DDIR will persist after the object is exited or
                 garbage-collected.
                 Default is ``False``.
+            tasklib: List of fully-qualified data set names to search for
+                IPCS-authorized programs via ``IPCS TASKLIB(...)``.
+                Each data set name is enclosed in apostrophes and concatenated, e.g.
+                ``['IPCSU1.DEBUG.LOAD', 'IPCSU1.DIAGNOS.LOAD']`` becomes
+                ``TASKLIB('IPCSU1.DEBUG.LOAD' 'IPCSU1.DIAGNOS.LOAD')``.
+                Default is ``None`` (no ``TASKLIB`` specified).
 
         Note:
             If you do not know which allocations are needed in order to run IPCS
@@ -90,6 +97,7 @@ class IpcsDdir:
         if allocations is None:
             allocations = {"IPCSPARM": "SYS1.PARMLIB", "SYSPROC": "SYS1.SBLSCLI0"}
         self._allocations: dict[str, str | list[str]] = copy.deepcopy(allocations)
+        self._tasklib: Optional[list[str]] = list(tasklib) if tasklib is not None else None
 
         # Run BLSCDDIR CLIST
         self._response: TsoResponse = IpcsDdir._blscddir(
@@ -127,6 +135,11 @@ class IpcsDdir:
     def allocations(self) -> dict[str, str | list[str]]:
         """Copy of the current IPCS allocations"""
         return copy.deepcopy(self._allocations)
+
+    @property
+    def tasklib(self) -> Optional[list[str]]:
+        """Copy of the current TASKLIB data set name list, or ``None`` if not set."""
+        return list(self._tasklib) if self._tasklib is not None else None
 
     @property
     def response(self) -> TsoResponse:
@@ -231,6 +244,20 @@ class IpcsDdir:
             on your current system, please reach out to your system administrator.
         """
         self._allocations = copy.deepcopy(allocations)
+
+    def set_tasklib(self, tasklib: Optional[list[str]]) -> None:
+        """
+        Replace the current TASKLIB data set names with a copy of the provided data set names.
+
+        Args:
+            tasklib: List of fully-qualified data set names to search for
+                IPCS-authorized programs via ``IPCS TASKLIB(...)``.
+                Each data set name is enclosed in apostrophes and concatenated, e.g.
+                ``['IPCSU1.DEBUG.LOAD', 'IPCSU1.DIAGNOS.LOAD']`` becomes
+                ``TASKLIB('IPCSU1.DEBUG.LOAD' 'IPCSU1.DIAGNOS.LOAD')``.
+                Pass ``None`` to clear the TASKLIB.
+        """
+        self._tasklib = list(tasklib) if tasklib is not None else None
 
     def delete(self) -> TsoResponse:
         """
@@ -464,6 +491,10 @@ class IpcsDdir:
             else:
                 local_defaults = f"DSNAME('{dump.dsname}') {local_defaults}"
 
+        tasklib_str = None
+        if self._tasklib:
+            tasklib_str = " ".join(f"'{dsname}'" for dsname in self._tasklib)
+
         return ipcs_subcmd(
             subcmd=subcmd,
             driver=self._driver,
@@ -471,6 +502,7 @@ class IpcsDdir:
             allocations=self._allocations,
             authorized=authorized,
             local_defaults=local_defaults,
+            tasklib=tasklib_str,
             output=output,
         )
 

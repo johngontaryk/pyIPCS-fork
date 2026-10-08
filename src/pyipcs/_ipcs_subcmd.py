@@ -19,6 +19,7 @@ def ipcs_subcmd(
     allocations: dict[str, str | list[str]],
     authorized: bool,
     local_defaults: Optional[str] = None,
+    tasklib: Optional[str] = None,
     output: Optional[IO[str]] = None,
 ) -> IpcsResponse:
     """
@@ -40,6 +41,8 @@ def ipcs_subcmd(
             over to future subcommands. May be a single string
             (e.g. ``'FLAG(WARNING) CONFIRM(NO)'``). Default is ``None`` to not
             run a ``SETDEF`` subcommand before running the specified subcommand.
+        tasklib: If non-empty, passed as ``TASKLIB(<tasklib>)`` on the
+            ``IPCS NOPARM`` call. Default is ``None``.
         output: An open, writable text file object. When provided, subcommand
             output is written to this file instead of being returned as a string
             (``output`` attribute will be ``None`` in the returned
@@ -53,16 +56,16 @@ def ipcs_subcmd(
     # Construct IPCS subcommand
     escaped_subcmd = subcmd.strip().replace("'", "''''")
 
-    # Construct full SETDEF LOCAL NOLIST subcommand to run before specified subcommand
+    # Build optional CLIST keyword arguments
+    extra_parms = ""
     if local_defaults:
         escaped_setdef = local_defaults.replace("'", "''''")
-        cmd = (
-            f"ex '{driver}(IPCSRUN)' "
-            f"'SUB(''{escaped_subcmd}'') "
-            f"LOC(''SETDEF NOLIST LOCAL {escaped_setdef}'')'"
-        )
-    else:
-        cmd = f"ex '{driver}(IPCSRUN)' 'SUB(''{escaped_subcmd}'')'"
+        extra_parms += f" SDL(''SETDEF NOLIST LOCAL {escaped_setdef}'')"
+    if tasklib:
+        escaped_tl = tasklib.replace("'", "''''")
+        extra_parms += f" TL(''{escaped_tl}'')"
+
+    cmd = f"ex '{driver}(IPCSRUN)' 'SUB(''{escaped_subcmd}''){extra_parms}'"
 
     shell_script = tso_shell_script(
         cmd=cmd,
