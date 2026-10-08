@@ -1,12 +1,15 @@
 addfinalizer
 addinivalue
 addoption
+autodoc
+autosummary
 autouse
 capsys
 conftest
 docstrings
 finalizer
 fixturenames
+furo
 getfixturevalue
 ipynb
 kwargs
@@ -19,4 +22,5 @@ rcfile
 readrecords
 repr
 subshell
+typehints
 zoautil
