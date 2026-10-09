@@ -39,6 +39,7 @@ examples/basic-examples
 
 contributing/CONTRIBUTING
 contributing/dev-setup
+contributing/editing-docs
 contributing/running-tests
 contributing/writing-tests
 ```
