@@ -35,7 +35,19 @@ class IpcsDump:
 
     @property
     def metadata(self) -> dict | None:
-        """Parsed dump header metadata, or ``None`` if the header record was not found."""
+        """Parsed dump header metadata, or ``None`` if the header record was not found.
+
+        The dictionary contains the following keys when present:
+
+        - **type** (*str | None*): Dump type — one of ``"SAD"``, ``"SVC"``, ``"SYSM"``,
+          or ``"SLIP"``. ``None`` if the type code is unrecognised.
+        - **title** (*str*): Title string recorded in the dump header.
+        - **sysname** (*str*): Name of the system that produced the dump.
+        - **version** (*int*): z/OS product version number.
+        - **release** (*int*): z/OS product release number.
+        - **timestamp** (*str*): ISO 8601 date/time string derived from the STCK clock
+          value recorded at the time of the dump.
+        """
         return self._metadata
 
     def _parse_header_record(self) -> dict | None:
