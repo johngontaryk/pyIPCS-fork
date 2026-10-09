@@ -32,7 +32,7 @@ git checkout -b feature/your-feature-name upstream/develop
 
 - Write your code
 - Add tests for new functionality
-- Update documentation as needed
+- Update documentation as needed — see the [Editing and Building Documentation](editing-docs) guide for how to edit source files and build a local preview
 - Follow the style guidelines (see below)
 
 ### 5. Test Your Changes
@@ -99,6 +99,8 @@ black ./src
 - **Use Google-style docstrings**
 
 ### Documentation Style
+
+See the [Editing and Building Documentation](editing-docs) guide for full instructions on editing source files, adding new pages, and building a local HTML preview.
 
 #### Markdown
 
