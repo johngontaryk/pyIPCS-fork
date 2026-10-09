@@ -12,7 +12,32 @@ from ._commands import (
     handle_init_dump,
     handle_run,
 )
-from ._common import add_common_args
+
+
+def _add_common_args(parser: argparse.ArgumentParser) -> None:
+    """Add the shared ``dsname`` positional arg and ``--driver`` / ``--allocations`` flags.
+
+    Args:
+        parser: The subparser to add arguments to.
+    """
+    parser.add_argument("ddir", help="Data set name of the DDIR.")
+    parser.add_argument(
+        "--driver",
+        metavar="DSNAME",
+        default=None,
+        help="Driver data set name to use for the DDIR.",
+    )
+    parser.add_argument(
+        "--allocations",
+        metavar="FILE",
+        default=None,
+        help=(
+            "Path to a JSON file containing custom TSO/E allocations. "
+            "The file must be a JSON object where keys are DD names and values "
+            "are string allocation requests or lists of dataset names. "
+            'Defaults to {"IPCSPARM": "SYS1.PARMLIB", "SYSPROC": "SYS1.SBLSCLI0"}.'
+        ),
+    )
 
 
 def parser_create_ddir(
@@ -21,14 +46,17 @@ def parser_create_ddir(
     """Register the ``create-ddir`` subparser."""
     p = subparsers.add_parser(
         "create-ddir",
-        help="Create or open a dump directory (DDIR) by running BLSCDDIR.",
+        help="Create a dump directory (DDIR) by running BLSCDDIR, or open an existing one.",
     )
-    add_common_args(p)
+    _add_common_args(p)
     p.add_argument(
         "--ddir-parms",
         dest="ddir_parms",
         default=None,
-        help="Additional parameters to pass to the BLSCDDIR CLIST.",
+        help=(
+            "Additional parameters to pass to the BLSCDDIR CLIST. "
+            "Ignored if the DDIR already exists."
+        ),
     )
     p.set_defaults(func=handle_create_ddir)
 
@@ -41,7 +69,7 @@ def parser_setdef_global(
         "setdef-global",
         help="Set global defaults on an existing DDIR.",
     )
-    add_common_args(p)
+    _add_common_args(p)
     p.add_argument(
         "--dump",
         metavar="DSNAME",
@@ -64,7 +92,7 @@ def parser_init_dump(
         "init-dump",
         help="Initialize a dump data set in an existing DDIR by running STATUS.",
     )
-    add_common_args(p)
+    _add_common_args(p)
     p.add_argument(
         "dump", metavar="DSNAME", help="Source dump data set name to initialize."
     )
@@ -79,7 +107,7 @@ def parser_run(
         "run",
         help="Run an IPCS subcommand against an existing DDIR.",
     )
-    add_common_args(p)
+    _add_common_args(p)
     p.add_argument("subcmd", help="IPCS subcommand to run.")
     p.add_argument(
         "--dump",

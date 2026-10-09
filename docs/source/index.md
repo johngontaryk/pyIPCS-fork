@@ -16,6 +16,7 @@ getting-started/quickstart
 
 guide/ipcs-architecture
 guide/pyipcs-architecture
+guide/cli
 ```
 
 ```{toctree}

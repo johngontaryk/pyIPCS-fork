@@ -6,10 +6,36 @@ from __future__ import annotations
 
 import argparse
 import sys
-
+import json
 from ..dump import IpcsDump
 from ..ddir import IpcsDdir
-from ._common import load_allocations
+
+
+def _load_allocations(path: str | None) -> dict[str, str | list[str]] | None:
+    """Load allocations from a JSON file, or return ``None`` to use defaults.
+
+    The JSON file must contain an object whose keys are DD names and values are
+    string data set allocation requests or lists of cataloged dataset names::
+
+        {
+            "IPCSPARM": "SYS1.PARMLIB",
+            "SYSPROC": ["SYS1.SBLSCLI0", "MY.SBLSCLI0"]
+        }
+
+    Args:
+        path: Path to the JSON file, or ``None`` to use defaults.
+
+    Returns:
+        dict[str, str | list[str]] | None: Allocations dictionary, or ``None``
+        if ``path`` is ``None``.
+
+    Raises:
+        argparse.ArgumentTypeError: If the file cannot be read or is not valid.
+    """
+    if path is None:
+        return None
+    with open(path, encoding="utf-8") as f:
+        return json.load(f)
 
 
 def handle_create_ddir(args: argparse.Namespace) -> None:
@@ -17,11 +43,13 @@ def handle_create_ddir(args: argparse.Namespace) -> None:
     ddir = IpcsDdir(
         args.ddir,
         driver=args.driver,
-        allocations=load_allocations(args.allocations),
+        allocations=_load_allocations(args.allocations),
         ddir_parms=args.ddir_parms,
     )
-    print(ddir.response.output, end="")
-    sys.exit(ddir.response.rc)
+    if ddir.response is not None:
+        print(ddir.response.output, end="")
+        sys.exit(ddir.response.rc)
+    sys.exit(0)
 
 
 def handle_setdef_global(args: argparse.Namespace) -> None:
@@ -29,7 +57,7 @@ def handle_setdef_global(args: argparse.Namespace) -> None:
     ddir = IpcsDdir(
         args.ddir,
         driver=args.driver,
-        allocations=load_allocations(args.allocations),
+        allocations=_load_allocations(args.allocations),
     )
     response = ddir.setdef_global(
         dump=IpcsDump(args.dump) if args.dump else None,
@@ -45,7 +73,7 @@ def handle_init_dump(args: argparse.Namespace) -> None:
     ddir = IpcsDdir(
         args.ddir,
         driver=args.driver,
-        allocations=load_allocations(args.allocations),
+        allocations=_load_allocations(args.allocations),
     )
     response = ddir.init_dump(dump)
     if response.rc >= 8:
@@ -69,7 +97,7 @@ def handle_run(args: argparse.Namespace) -> None:
     ddir = IpcsDdir(
         args.ddir,
         driver=args.driver,
-        allocations=load_allocations(args.allocations),
+        allocations=_load_allocations(args.allocations),
     )
     response = ddir.run(
         args.subcmd,

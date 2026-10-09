@@ -32,6 +32,17 @@ def test_ddir_init_default(ddir_dsname, allocations, ddir_parms):
         validate_driver(default_driver)
 
 
+def test_ddir_init_existing(default_ddir, allocations, ddir_parms):
+    """Test IpcsDdir constructor with an existing DDIR."""
+    assert check_dataset_exists(default_ddir.dsname)
+
+    with IpcsDdir(
+        default_ddir.dsname, allocations=allocations, ddir_parms=ddir_parms
+    ) as ddir:
+        assert ddir.dsname == default_ddir.dsname
+        assert ddir.response is None
+
+
 def test_ddir_init_custom_driver(ddir_dsname, driver_dsname, allocations, ddir_parms):
     """Test IpcsDdir constructor with a custom driver."""
     assert not check_dataset_exists(driver_dsname)

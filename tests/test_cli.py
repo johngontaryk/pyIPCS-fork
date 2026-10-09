@@ -69,6 +69,19 @@ def test_handle_create_ddir(ddir_dsname, allocations_path, ddir_parms):
     assert check_dataset_exists(ddir_dsname)
 
 
+def test_handle_create_ddir_existing(default_ddir, allocations_path):
+    """handle_create_ddir should open an existing DDIR without error and exit 0."""
+    assert check_dataset_exists(default_ddir.dsname)
+    args = Namespace(
+        ddir=default_ddir.dsname, driver=None, allocations=allocations_path, ddir_parms=None
+    )
+
+    with pytest.raises(SystemExit) as exc:
+        handle_create_ddir(args)
+
+    assert _exit_code(exc) == 0
+
+
 def test_handle_setdef_global(default_ddir, allocations_path, capsys):
     """handle_setdef_global should set defaults and exit with rc < 8."""
     args = Namespace(
