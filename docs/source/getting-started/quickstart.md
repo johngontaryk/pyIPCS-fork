@@ -23,6 +23,14 @@ Start with practical examples:
   - Running IPCS subcommands
   - Using `pyipcs.ipcs` utility functions
 
-## 4. API Reference
+## 4. CLI Usage
+
+- **[Command-Line Interface](../guide/cli.md)** — Run IPCS commands directly from the z/OS UNIX shell without writing Python scripts:
+  - Creating and opening DDIRs
+  - Initializing dump data sets
+  - Running IPCS subcommands
+  - Shell automation examples
+
+## 5. API Reference
 
 - **[API Documentation](../api/index.md)** — Full reference for all classes and functions

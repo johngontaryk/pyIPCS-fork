@@ -4,13 +4,17 @@ pyIPCS provides a command-line interface (`pyipcs`) that allows you to manage IP
 
 ## Overview
 
+Before using the CLI, make sure pyIPCS is correctly installed — see the [Installation Guide](../getting-started/installation.md).
+
 The `pyipcs` command is installed as an entry point script when installing the pyIPCS package:
 
 ```bash
 pyipcs <command> [arguments] [options]
 ```
 
-Exit codes returned by the CLI match the underlying TSO/E or IPCS return code (where `0` indicates success, `< 8` indicates success with warnings/informational notes, and `>= 8` indicates an error).
+### Exit Codes
+
+Exit codes returned by the CLI generally match the underlying TSO/E or IPCS return code.
 
 ### Allocations File Format
 
