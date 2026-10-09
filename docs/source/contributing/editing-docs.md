@@ -1,4 +1,4 @@
-# Editing and Building Documentation
+# Editing Documentation
 
 This guide explains how to edit the pyIPCS documentation source files and how to build the HTML output locally to preview your changes.
 
