@@ -40,7 +40,7 @@ class IpcsDump:
         The dictionary contains the following keys when present:
 
         - **type** (*str | None*): Dump type — one of ``"SAD"``, ``"SVC"``, ``"SYSM"``,
-          or ``"SLIP"``. ``None`` if the type code is unrecognised.
+          or ``"SLIP"``. ``None`` if the type code is unrecognized.
         - **title** (*str*): Title string recorded in the dump header.
         - **sysname** (*str*): Name of the system that produced the dump.
         - **version** (*int*): z/OS product version number.

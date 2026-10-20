@@ -18,6 +18,7 @@ pyproject
 pytest
 rcfile
 sdist
+setuptools
 subshell
 toctree
 typehints
