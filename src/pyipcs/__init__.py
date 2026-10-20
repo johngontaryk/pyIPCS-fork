@@ -14,7 +14,7 @@ from . import driver
 from . import ipcs
 from .dump import IpcsDump
 from .ddir import IpcsDdir
-from .response import TsoResponse, IpcsResponse
+from .response import TsoResponse, IpcsResponse, IpcsParsedResponse
 
 __all__ = [
     "__version__",
@@ -25,4 +25,5 @@ __all__ = [
     "IpcsDdir",
     "TsoResponse",
     "IpcsResponse",
+    "IpcsParsedResponse",
 ]

@@ -69,17 +69,18 @@ with IpcsDdir.temp_ddir() as ddir:
 
     # List all address spaces on the system at dump time
     asids = ipcs.select_all(ddir, dump)
-    if asids:
-        for entry in asids:
+    if asids.data:
+        for entry in asids.data:
             print(f"ASID: {entry['asid']}  Job: {entry['jobname']}  ASCB: {entry['ascb']}")
 
     # Get IPL time
     ipl = ipcs.ipl_time(ddir, dump)
-    print(f"IPL time: {ipl}")
+    print(f"IPL time: {ipl.data}")
+    print(f"Return code: {ipl.response.rc}")
 
     # Decode an opcode
     mnemonic = ipcs.opcode(ddir, dump, "0A0A")
-    print(f"Mnemonic: {mnemonic}")
+    print(f"Mnemonic: {mnemonic.data}")
 ```
 
 ## Writing Subcommand Output to a File
@@ -94,6 +95,42 @@ with IpcsDdir.temp_ddir() as ddir:
 
     with open("/tmp/output.txt", "w", encoding="cp1047") as f:
         ddir.run("SELECT ALL", dump=dump, output=f)
+```
+
+## Creating Your Own Parsed Response
+
+You can use `IpcsParsedResponse` to build custom helper functions that parse IPCS subcommand outputs while preserving the underlying `IpcsResponse` for diagnostics:
+
+```python
+from typing import Optional
+from pyipcs import IpcsDdir, IpcsDump, IpcsParsedResponse
+
+
+def parse_my_data(ddir: IpcsDdir, dump: IpcsDump) -> IpcsParsedResponse[str]:
+    """Run a custom subcommand and parse a key field from its output."""
+    response = ddir.run("YOUR SUBCMD OPTION(ALL)", dump=dump)
+
+    marker = "KEY: "
+    idx = response.output.find(marker)
+    if idx == -1:
+        return IpcsParsedResponse(data=None, response=response)
+
+    idx += len(marker)
+    key_val = response.output[idx:idx+3]
+
+    return IpcsParsedResponse(data=key_val if key_val else None, response=response)
+
+
+# Using the custom parsed response:
+with IpcsDdir.temp_ddir() as ddir:
+    dump = IpcsDump("MY.DUMP.DSNAME")
+    result = parse_my_data(ddir, dump)
+
+    # Return the parsed data
+    print(f"Parsed data: {result.data}")
+
+    # Access the raw subcommand response and return code at any time
+    print(f"Subcommand RC: {result.response.rc}")
 ```
 
 ## Best Practices

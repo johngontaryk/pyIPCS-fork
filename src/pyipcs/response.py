@@ -1,5 +1,5 @@
 """
-TsoResponse and IpcsResponse Objects
+TsoResponse, IpcsResponse, and IpcsParsedResponse Objects
 """
 
 from typing import Optional
@@ -84,4 +84,34 @@ class IpcsResponse:
         return (
             f"IpcsResponse(subcmd={self._subcmd!r}, rc={self._rc!r}, "
             f"authorized={self._authorized!r})"
+        )
+
+
+class IpcsParsedResponse[T]:
+    """
+    Response from running an IPCS subcommand with parsed dump data.
+    """
+
+    def __init__(
+        self,
+        data: T,
+        response: IpcsResponse,
+    ) -> None:
+        self._data = data
+        self._response = response
+
+    @property
+    def data(self) -> T:
+        """Data obtained by parsing subcommand output."""
+        return self._data
+
+    @property
+    def response(self) -> IpcsResponse:
+        """Raw IPCS subcommand response."""
+        return self._response
+
+    def __repr__(self) -> str:
+        return (
+            f"IpcsParsedResponse(data={self._data!r}, "
+            f"response={self._response!r})"
         )

@@ -77,10 +77,15 @@ data set exists and is a valid dump, then parses metadata from the dump header r
 
 **Properties:** `subcmd`, `rc`, `output`, `authorized`
 
+### `IpcsParsedResponse` — Parsed Subcommand Response
+
+`IpcsParsedResponse[T]` is a generic response container that pairs parsed dump data with the underlying raw `IpcsResponse`.
+
+**Properties:** `data`, `response`
+
 ### `pyipcs.ipcs` — IPCS Utility Functions
 
-A module of higher-level utility functions that run common IPCS subcommands against
-a given `IpcsDdir` and `IpcsDump` and return parsed results.
+A module of higher-level utility functions that run common IPCS subcommands and return `IpcsParsedResponse` objects containing parsed results alongside the raw response.
 
 **Functions include:** `is_dump`, `sliptrap`, `ipl_time`, `select_all`,
 `storage_areas`, `asids_dumped`, `opcode`
@@ -106,7 +111,7 @@ Defines the exception and warning hierarchy raised by pyIPCS operations.
 | `IpcsInvalidReturnCodeWarning` | Warning | Non-fatal unexpected IPCS return code |
 | `DdirDeletedError` | Exception | Operation on a deleted DDIR |
 
-## Data Flow
+## Basic Data Flow
 
 ```
 ┌──────────────┐     ┌─────────────────────────────────┐

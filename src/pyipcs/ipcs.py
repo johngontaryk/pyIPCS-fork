@@ -8,6 +8,7 @@ from typing import Optional, TYPE_CHECKING
 
 from zoautil_py import zoau_io  # pylint: disable=import-error
 from ._util import get_dataset
+from .response import IpcsParsedResponse
 
 if TYPE_CHECKING:
     from .ddir import IpcsDdir
@@ -45,7 +46,7 @@ def is_dump(dsname: str) -> bool:
     return True
 
 
-def sliptrap(ddir: IpcsDdir, dump: IpcsDump) -> Optional[str]:
+def sliptrap(ddir: IpcsDdir, dump: IpcsDump) -> Optional[IpcsParsedResponse[Optional[str]]]:
     """
     Run ``LIST SLIPTRAP`` and return the SLIPTRAP string for the dump.
 
@@ -54,22 +55,22 @@ def sliptrap(ddir: IpcsDdir, dump: IpcsDump) -> Optional[str]:
         dump: Dump data set to run the subcommand against.
 
     Returns:
-        str | None: The SLIPTRAP string, ``None`` if there is no SLIPTRAP,
-        or ``None`` if the dump is not a SLIP dump or the subcommand return
-        code is greater than 0.
+        IpcsParsedResponse[str | None] | None: Parsed response containing the SLIPTRAP
+        string (or ``None`` if not found) in ``data`` and the raw ``response``,
+        or ``None`` if the dump is not a SLIP dump.
     """
     if dump.metadata is None or dump.metadata.get("type") != "SLIP":
         return None
 
     response = ddir.run("LIST SLIPTRAP", dump=dump)
     if response.rc > 0 or response.output is None:
-        return None
+        return IpcsParsedResponse(data=None, response=response)
 
     sliptrap_lines = response.output.splitlines()
 
     # If the number of lines is 1 or less there is no SLIPTRAP
     if len(sliptrap_lines) <= 1:
-        return None
+        return IpcsParsedResponse(data=None, response=response)
 
     # Remove first 3 lines to get to SLIPTRAP content
     sliptrap_lines = sliptrap_lines[3:]
@@ -82,10 +83,10 @@ def sliptrap(ddir: IpcsDdir, dump: IpcsDump) -> Optional[str]:
             continue
         result += line[start + len("| ") : len(line) - len(" |")]
 
-    return result if result else None
+    return IpcsParsedResponse(data=result if result else None, response=response)
 
 
-def ipl_time(ddir: IpcsDdir, dump: IpcsDump) -> Optional[str]:
+def ipl_time(ddir: IpcsDdir, dump: IpcsDump) -> IpcsParsedResponse[Optional[str]]:
     """
     Run ``IPLDATA`` and return the local IPL date/time in ISO 8601 format.
 
@@ -94,19 +95,20 @@ def ipl_time(ddir: IpcsDdir, dump: IpcsDump) -> Optional[str]:
         dump: Dump data set to run the subcommand against.
 
     Returns:
-        str | None: ISO 8601 datetime string (``YYYY-MM-DDTHH:MM:SS``) of the
-        local IPL time, or ``None`` if the information could not be determined
-        or the subcommand return code is greater than 0.
+        IpcsParsedResponse[str | None]: Parsed response containing the ISO 8601
+        datetime string (``YYYY-MM-DDTHH:MM:SS``) in ``data`` and the raw
+        ``response``, or ``data`` as ``None`` if the information could not be
+        determined or the subcommand return code is greater than 0.
     """
     response = ddir.run("IPLDATA", dump=dump)
     if response.rc > 0 or response.output is None:
-        return None
+        return IpcsParsedResponse(data=None, response=response)
 
     output = response.output
     marker = "System IPLed at "
     idx = output.find(marker)
     if idx == -1:
-        return None
+        return IpcsParsedResponse(data=None, response=response)
 
     idx += len(marker)
     end = output.find("\n", idx)
@@ -118,12 +120,12 @@ def ipl_time(ddir: IpcsDdir, dump: IpcsDump) -> Optional[str]:
         dt = datetime.datetime.strptime(
             f"{date_str.strip()} {time_str.strip()}", "%m/%d/%Y %H:%M:%S"
         )
-        return dt.isoformat()
+        return IpcsParsedResponse(data=dt.isoformat(), response=response)
     except (ValueError, AttributeError):
-        return None
+        return IpcsParsedResponse(data=None, response=response)
 
 
-def select_all(ddir: IpcsDdir, dump: IpcsDump) -> Optional[list[dict]]:
+def select_all(ddir: IpcsDdir, dump: IpcsDump) -> IpcsParsedResponse[Optional[list[dict]]]:
     """
     Run ``SELECT ALL`` and return a list of ASIDs on the system at dump time.
 
@@ -132,24 +134,26 @@ def select_all(ddir: IpcsDdir, dump: IpcsDump) -> Optional[list[dict]]:
         dump: Dump data set to run the subcommand against.
 
     Returns:
-        list[dict] | None: List of dictionaries, each with keys:
+        IpcsParsedResponse[list[dict] | None]: Parsed response containing a list
+        of dictionaries in ``data`` with keys:
 
         - **"asid"** (str): Hex ASID string.
         - **"jobname"** (str | None): Job name, or ``None`` if unavailable.
         - **"ascb"** (str): Hex ASCB address string.
 
-        Returns ``None`` if the subcommand return code is greater than 0 or
-        the output could not be parsed.
+        and the raw ``response``. Returns ``data`` as ``None`` if the
+        subcommand return code is greater than 0 or the output could not be
+        parsed.
     """
     response = ddir.run("SELECT ALL", dump=dump)
     if response.rc > 0 or response.output is None:
-        return None
+        return IpcsParsedResponse(data=None, response=response)
 
     output = response.output
     header_marker = "ASID JOBNAME  ASCBADDR  SELECTION CRITERIA"
     idx = output.find(header_marker)
     if idx == -1:
-        return None
+        return IpcsParsedResponse(data=None, response=response)
 
     # Skip header line and separator line
     asid_lines = output[idx:].splitlines()[2:]
@@ -161,10 +165,10 @@ def select_all(ddir: IpcsDdir, dump: IpcsDump) -> Optional[list[dict]]:
         ascb = line[15:24].strip()
         asids_all.append({"asid": asid, "jobname": jobname, "ascb": ascb})
 
-    return asids_all
+    return IpcsParsedResponse(data=asids_all, response=response)
 
 
-def storage_areas(ddir: IpcsDdir, dump: IpcsDump) -> Optional[dict]:
+def storage_areas(ddir: IpcsDdir, dump: IpcsDump) -> IpcsParsedResponse[Optional[dict]]:
     """
     Run ``LISTDUMP SELECT DSNAME`` and return all ASIDs and data spaces included in the dump.
 
@@ -173,19 +177,21 @@ def storage_areas(ddir: IpcsDdir, dump: IpcsDump) -> Optional[dict]:
         dump: Dump data set to run the subcommand against.
 
     Returns:
-        dict | None: Dictionary with keys:
+        IpcsParsedResponse[dict | None]: Parsed response containing a dictionary
+        in ``data`` with keys:
 
         - **"asids"** (list[str]): List of hex ASID strings present in the dump.
         - **"dspnames"** (dict[str, list[str]]): Mapping of hex ASID string to a
           list of data space names dumped for that ASID. ASIDs without a data space
           are not included.
 
-        Returns ``None`` if the subcommand return code is greater than 0 or
-        the output could not be parsed.
+        and the raw ``response``. Returns ``data`` as ``None`` if the
+        subcommand return code is greater than 0 or the output could not be
+        parsed.
     """
     response = ddir.run(f"LISTDUMP SELECT DSNAME('{dump.dsname}')", dump=dump)
     if response.rc > 0 or response.output is None:
-        return None
+        return IpcsParsedResponse(data=None, response=response)
 
     output = response.output
     asids: set[str] = set()
@@ -213,10 +219,13 @@ def storage_areas(ddir: IpcsDdir, dump: IpcsDump) -> Optional[dict]:
             dspname_start = line.find("DSPNAME(") + 8
             dspnames[asid].append(line[dspname_start : line.find(")", dspname_start)])
 
-    return {"asids": list(asids), "dspnames": dspnames}
+    return IpcsParsedResponse(
+        data={"asids": list(asids), "dspnames": dspnames},
+        response=response,
+    )
 
 
-def asids_dumped(ddir: IpcsDdir, dump: IpcsDump) -> Optional[list[str]]:
+def asids_dumped(ddir: IpcsDdir, dump: IpcsDump) -> IpcsParsedResponse[Optional[list[str]]]:
     """
     Run ``CBF RTCT`` and return the list of requested ASIDs that were dumped.
 
@@ -225,18 +234,19 @@ def asids_dumped(ddir: IpcsDdir, dump: IpcsDump) -> Optional[list[str]]:
         dump: Dump data set to run the subcommand against.
 
     Returns:
-        list[str] | None: List of hex ASID strings that were dumped, or
-        ``None`` if the subcommand return code is greater than 0 or the
-        output could not be parsed.
+        IpcsParsedResponse[list[str] | None]: Parsed response containing a list
+        of hex ASID strings that were dumped in ``data`` and the raw ``response``.
+        Returns ``data`` as ``None`` if the subcommand return code is greater
+        than 0 or the output could not be parsed.
     """
     response = ddir.run("CBF RTCT", dump=dump)
     if response.rc > 0 or response.output is None:
-        return None
+        return IpcsParsedResponse(data=None, response=response)
 
     marker = "SDAS  SDF4  SDF5"
     idx = response.output.find(marker)
     if idx == -1:
-        return None
+        return IpcsParsedResponse(data=None, response=response)
 
     # Skip the header line and separator line, take up to 16 ASID lines
     asid_lines = response.output[idx:].splitlines()[2:18]
@@ -251,10 +261,10 @@ def asids_dumped(ddir: IpcsDdir, dump: IpcsDump) -> Optional[list[str]]:
             break
         asids.append(asid)
 
-    return asids
+    return IpcsParsedResponse(data=asids, response=response)
 
 
-def opcode(ddir: IpcsDdir, dump: IpcsDump, instr: str) -> Optional[str]:
+def opcode(ddir: IpcsDdir, dump: IpcsDump, instr: str) -> IpcsParsedResponse[Optional[str]]:
     """
     Run ``OPCODE`` and return the mnemonic for an instruction.
 
@@ -264,20 +274,21 @@ def opcode(ddir: IpcsDdir, dump: IpcsDump, instr: str) -> Optional[str]:
         instr: Hex string of the instruction opcode (e.g. ``"0A0A"``).
 
     Returns:
-        str | None: The instruction mnemonic, or ``None`` if the mnemonic
-        could not be determined or the subcommand return code is greater
-        than 0.
+        IpcsParsedResponse[str | None]: Parsed response containing the
+        instruction mnemonic in ``data`` and the raw ``response``. Returns
+        ``data`` as ``None`` if the mnemonic could not be determined or the
+        subcommand return code is greater than 0.
     """
     response = ddir.run(f"OPCODE {instr}", dump=dump)
     if response.rc > 0 or response.output is None:
-        return None
+        return IpcsParsedResponse(data=None, response=response)
     if "IKJ56702I INVALID VARIABLE MNEMONIC OPTION" in response.output:
-        return None
+        return IpcsParsedResponse(data=None, response=response)
 
     marker = f"Mnemonic for X'{instr}' is "
     idx = response.output.find(marker)
     if idx == -1:
-        return None
+        return IpcsParsedResponse(data=None, response=response)
 
     mnemonic = response.output[idx + len(marker) :].rstrip()
-    return mnemonic if mnemonic else None
+    return IpcsParsedResponse(data=mnemonic if mnemonic else None, response=response)

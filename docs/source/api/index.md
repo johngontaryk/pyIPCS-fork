@@ -9,6 +9,7 @@
   pyipcs.IpcsDdir
   pyipcs.TsoResponse
   pyipcs.IpcsResponse
+  pyipcs.IpcsParsedResponse
   pyipcs.exceptions
   pyipcs.driver
   pyipcs.ipcs
