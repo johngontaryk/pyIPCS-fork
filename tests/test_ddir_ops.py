@@ -47,6 +47,11 @@ def test_ddir_allocations(default_ddir):
     assert default_ddir.allocations != new_allocations
 
 
+def test_ddir_sources_empty(default_ddir):
+    """Test IpcsDdir sources returns an empty list when no dumps are described"""
+    assert default_ddir.sources() == []
+
+
 @pytest.mark.dump
 def test_copy_ddir_drop_dump(dump, default_ddir, dump_ddir):
     """Test DDIR source management"""
