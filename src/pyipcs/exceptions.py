@@ -10,22 +10,12 @@ class TsoError(Exception):
     Base level exception for TSO/E errors.
     """
 
-    def __init__(self, message: str, output: str = "") -> None:
+    def __init__(self, message: str) -> None:
         """
         Args:
             message: Error message.
-            output: Output captured before the error occurred. Default is ``""``.
         """
-        self._output: str = output
-        full_message = message
-        if output:
-            full_message += f"\n[OUTPUT]:\n{output}"
-        super().__init__(full_message)
-
-    @property
-    def output(self) -> str:
-        """Output captured before the error occurred."""
-        return self._output
+        super().__init__(message)
 
 
 class TsoInvalidReturnCodeError(TsoError):
@@ -39,12 +29,14 @@ class TsoInvalidReturnCodeError(TsoError):
             response: TSO response.
         """
         self._response = response
-        super().__init__(
+        message = (
             f"TSO command {response.cmd} "
             f"(authorized={response.authorized}) "
-            f"exited with an invalid return code {response.rc}.",
-            output=response.output,
+            f"exited with an invalid return code {response.rc}."
         )
+        if response.output:
+            message += f"\n[OUTPUT]:\n{response.output}"
+        super().__init__(message)
 
     @property
     def response(self) -> TsoResponse:
@@ -56,14 +48,6 @@ class IpcsError(TsoError):
     """
     Base level exception for IPCS errors.
     """
-
-    def __init__(self, message: str, output: str = "") -> None:
-        """
-        Args:
-            message: Error message.
-            output: Output captured before the error occurred. Default is ``""``.
-        """
-        super().__init__(message, output=output)
 
 
 class IpcsInvalidReturnCodeError(IpcsError):
@@ -77,12 +61,14 @@ class IpcsInvalidReturnCodeError(IpcsError):
             response: IPCS response.
         """
         self._response = response
-        super().__init__(
+        message = (
             f"IPCS subcommand {response.subcmd!r} "
             f"(authorized={response.authorized}) "
-            f"exited with an invalid return code {response.rc}.",
-            output=response.output if response.output is not None else "",
+            f"exited with an invalid return code {response.rc}."
         )
+        if response.output:
+            message += f"\n[OUTPUT]:\n{response.output}"
+        super().__init__(message)
 
     @property
     def response(self) -> IpcsResponse:
@@ -155,7 +141,7 @@ class IpcsInvalidReturnCodeWarning(IpcsWarning):
         return self._response
 
 
-class DdirDeletedError(TsoError):
+class DdirDeletedError(IpcsError):
     """
     Exception raised when an operation is attempted on a deleted dump directory (DDIR).
     """

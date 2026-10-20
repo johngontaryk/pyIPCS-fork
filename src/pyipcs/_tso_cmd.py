@@ -52,7 +52,10 @@ def tso_cmd(
         except Exception as e:
             tmp_file.seek(0)
             output = tmp_file.read()
-            raise TsoError(f"Failed to run TSO/E command '{cmd}'", output=output) from e
+            message = f"Failed to run TSO/E command '{cmd}'"
+            if output:
+                message += f"\n[OUTPUT]:\n{output}"
+            raise TsoError(message) from e
 
         tmp_file.seek(0)
         output = tmp_file.read()

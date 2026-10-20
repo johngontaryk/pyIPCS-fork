@@ -90,10 +90,10 @@ def ipcs_subcmd(
             for _ in range(2):
                 tmp_file.readline()
             err_output = tmp_file.read()
-            raise TsoError(
-                f"Failed to execute IPCS process for subcommand '{subcmd}'",
-                output=err_output,
-            ) from e
+            message = f"Failed to execute IPCS process for subcommand '{subcmd}'"
+            if err_output:
+                message += f"\n[OUTPUT]:\n{err_output}"
+            raise TsoError(message) from e
 
         # Skip the first lines which are not output of the subcommand
         tmp_file.seek(0)
@@ -131,11 +131,13 @@ def ipcs_subcmd(
             subcmd_output = "".join(lines).rstrip("\n")
 
     if pyipcs_rc is None:
-        raise IpcsError(
+        message = (
             f"Could not find return code output during pyIPCS driver execution "
-            f"while running IPCS subcommand '{subcmd}'",
-            output=subcmd_output if subcmd_output is not None else "",
+            f"while running IPCS subcommand '{subcmd}'"
         )
+        if subcmd_output:
+            message += f"\n[OUTPUT]:\n{subcmd_output}"
+        raise IpcsError(message)
 
     return IpcsResponse(
         subcmd=subcmd,
