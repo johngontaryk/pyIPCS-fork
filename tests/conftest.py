@@ -74,6 +74,7 @@ HLQ_KEY: pytest.StashKey[str] = pytest.StashKey()
 DRIVER_DSNAME_KEY: pytest.StashKey[str] = pytest.StashKey()
 DEF_DDIR_DSNAME_KEY: pytest.StashKey[str] = pytest.StashKey()
 DUMP_DDIR_DSNAME_KEY: pytest.StashKey[str] = pytest.StashKey()
+TEMP_DSNAME_KEY: pytest.StashKey[str] = pytest.StashKey()
 
 # ==============================================================================
 # Pytest Options
@@ -156,6 +157,7 @@ def pytest_configure(config: pytest.Config) -> None:
     config.stash[DRIVER_DSNAME_KEY] = f"{hlq}.DRIVER"
     config.stash[DEF_DDIR_DSNAME_KEY] = f"{hlq}.TESTDDIR"
     config.stash[DUMP_DDIR_DSNAME_KEY] = f"{hlq}.DUMPDDIR"
+    config.stash[TEMP_DSNAME_KEY] = f"{hlq}.TEMPDSN"
 
     # Cleanup Dump DDIR if needed
     cleanup_test_datasets(ddirs=[config.stash[DUMP_DDIR_DSNAME_KEY]])
@@ -184,7 +186,11 @@ def pytest_configure(config: pytest.Config) -> None:
 
     # Cleanup the rest of the test data sets if needed
     cleanup_test_datasets(
-        standard=[default_driver_dsname(), config.stash[DRIVER_DSNAME_KEY]],
+        standard=[
+            default_driver_dsname(),
+            config.stash[DRIVER_DSNAME_KEY],
+            config.stash[TEMP_DSNAME_KEY],
+        ],
         ddirs=[config.stash[DEF_DDIR_DSNAME_KEY]]
         + [
             ds.name
@@ -243,6 +249,12 @@ def dump_ddir_dsname(request: pytest.FixtureRequest) -> str:
     return request.config.stash[DUMP_DDIR_DSNAME_KEY]
 
 
+@pytest.fixture(scope="session")
+def temp_dsname(request: pytest.FixtureRequest) -> str:
+    """Data set name for a temporary test data set."""
+    return request.config.stash[TEMP_DSNAME_KEY]
+
+
 # ==============================================================================
 # Setup/Cleanup Fixtures
 # ==============================================================================
@@ -267,13 +279,14 @@ def reset_state(
     request: pytest.FixtureRequest,
     hlq: str,
     driver_dsname: str,
+    temp_dsname: str,
     ddir_dsname: str,
 ) -> None:
     """Delete leftover test data sets after each test."""
 
     def _cleanup() -> None:
         cleanup_test_datasets(
-            standard=[default_driver_dsname(), driver_dsname],
+            standard=[default_driver_dsname(), driver_dsname, temp_dsname],
             ddirs=[ddir_dsname]
             + [
                 ds.name
