@@ -197,14 +197,11 @@ def ipl_time(ddir: IpcsDdir, dump: IpcsDump) -> IpcsParsedResponse[Optional[str]
         return IpcsParsedResponse(data=None, response=response)
 
     output = response.output
-    marker = "System IPLed at "
-    idx = output.find(marker)
-    if idx == -1:
+    begin, end = find_field(output, "System IPLed at ", end_str="\n")
+    if end == -1:
         return IpcsParsedResponse(data=None, response=response)
 
-    idx += len(marker)
-    end = output.find("\n", idx)
-    line = output[idx:end].strip() if end != -1 else output[idx:].strip()
+    line = output[begin:end].strip()
 
     # Line format: "HH:MM:SS on MM/DD/YYYY"
     try:
@@ -303,15 +300,17 @@ def storage_areas(ddir: IpcsDdir, dump: IpcsDump) -> IpcsParsedResponse[Optional
         if "ASID" not in line:
             continue
 
-        asid_start = line.find("ASID(X'") + 7
-        asid = line[asid_start : line.find("')", asid_start)]
+        asid_start, asid_end = find_field(line, "ASID(X'", end_str="')")
+        if asid_end == -1:
+            continue
+        asid = line[asid_start:asid_end]
         asids.add(asid)
 
-        if "DSPNAME" in line:
+        dspname_start, dspname_end = find_field(line, "DSPNAME(", end_str=")")
+        if dspname_end != -1:
             if asid not in dspnames:
                 dspnames[asid] = []
-            dspname_start = line.find("DSPNAME(") + 8
-            dspnames[asid].append(line[dspname_start : line.find(")", dspname_start)])
+            dspnames[asid].append(line[dspname_start:dspname_end])
 
     return IpcsParsedResponse(
         data={"asids": list(asids), "dspnames": dspnames},
@@ -383,10 +382,11 @@ def opcode(
     if "IKJ56702I INVALID VARIABLE MNEMONIC OPTION" in response.output:
         return IpcsParsedResponse(data=None, response=response)
 
-    marker = f"Mnemonic for X'{instr}' is "
-    idx = response.output.find(marker)
-    if idx == -1:
+    begin, end = find_field(
+        response.output, f"Mnemonic for X'{instr}' is ", end_str="\n"
+    )
+    if end == -1:
         return IpcsParsedResponse(data=None, response=response)
 
-    mnemonic = response.output[idx + len(marker) :].rstrip()
+    mnemonic = response.output[begin:end].strip()
     return IpcsParsedResponse(data=mnemonic if mnemonic else None, response=response)
