@@ -84,6 +84,7 @@ def validate_driver(dsname: str) -> None:
             raise TsoError(
                 f"pyIPCS driver data set {dsname} is missing required member {member_name}"
             )
+
         def normalize(s: str) -> str:
             return "\n".join(line.rstrip() for line in s.splitlines()).strip()
 

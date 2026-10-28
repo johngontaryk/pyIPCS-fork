@@ -324,8 +324,8 @@ class IpcsDdir:
     ) -> IpcsResponse:
         """
         Attempt initialization of a dump data set.
-        
-        Runs ``SETDEF LOCAL NOLIST DSNAME(<dump.dsname>)``, 
+
+        Runs ``SETDEF LOCAL NOLIST DSNAME(<dump.dsname>)``,
         then the ``STATUS`` subcommand.
 
         Args:

@@ -46,7 +46,99 @@ def is_dump(dsname: str) -> bool:
     return True
 
 
-def sliptrap(ddir: IpcsDdir, dump: IpcsDump) -> Optional[IpcsParsedResponse[Optional[str]]]:
+def find_field(
+    text: str,
+    start_str: str,
+    length: Optional[int] = None,
+    end_str: Optional[str] = None,
+    start: int = 0,
+    end: Optional[int] = None,
+) -> tuple[int, int]:
+    """
+    Find the first field that follows a start string.
+
+    The field is the text in between ``start_str`` and either ``length`` characters later
+    or the next occurrence of ``end_str``. If neither is given, the field ends at the next
+    space character.
+
+    Args:
+        text: String to search.
+        start_str: String that marks the beginning of the field.
+        length: Number of characters in the field.
+        end_str: String that marks the end of the field.
+        start: Index in ``text`` where the search begins. Defaults to the beginning of
+            ``text``.
+        end: Index in ``text`` where the search stops (exclusive). Defaults to the end of
+            ``text``.
+
+    Returns:
+        tuple[int, int]: Beginning index (inclusive) and end index (exclusive) of the text
+        in between, relative to ``text``. ``(-1, -1)`` if ``start_str`` is not found.
+        ``(begin, -1)`` if ``start_str`` is found but the end of the field cannot be found.
+
+    Raises:
+        ValueError: If both ``length`` and ``end_str`` are provided.
+    """
+    if length is not None and end_str is not None:
+        raise ValueError("Only one of length or end_str may be provided")
+    idx = text.find(start_str, start, end)
+    if idx == -1:
+        return (-1, -1)
+    begin = idx + len(start_str)
+    limit = len(text) if end is None else min(end, len(text))
+    if length is not None:
+        stop = begin + length
+        return (begin, stop if stop <= limit else -1)
+    return (begin, text.find(" " if end_str is None else end_str, begin, limit))
+
+
+def rfind_field(
+    text: str,
+    start_str: str,
+    length: Optional[int] = None,
+    end_str: Optional[str] = None,
+    start: int = 0,
+    end: Optional[int] = None,
+) -> tuple[int, int]:
+    """
+    Find the last field that follows a start string.
+
+    Same as :func:`find_field`, but uses the last occurrence of ``start_str``.
+
+    Args:
+        text: String to search.
+        start_str: String that marks the beginning of the field.
+        length: Number of characters in the field.
+        end_str: String that marks the end of the field.
+        start: Index in ``text`` where the search begins. Defaults to the beginning of
+            ``text``.
+        end: Index in ``text`` where the search stops (exclusive). Defaults to the end of
+            ``text``.
+
+    Returns:
+        tuple[int, int]: Beginning index (inclusive) and end index (exclusive) of the text
+        in between, relative to ``text``. ``(-1, -1)`` if ``start_str`` is not found.
+        ``(begin, -1)`` if ``start_str`` is found but the end of the field cannot be found.
+
+    Raises:
+        ValueError: If both ``length`` and ``end_str`` are provided.
+    """
+    if length is not None and end_str is not None:
+        raise ValueError("Only one of length or end_str may be provided")
+    idx = text.rfind(start_str, start, end)
+    if idx == -1:
+        return (-1, -1)
+    begin = idx + len(start_str)
+    limit = len(text) if end is None else min(end, len(text))
+    if length is not None:
+        stop = begin + length
+        return (begin, stop if stop <= limit else -1)
+    return (begin, text.find(" " if end_str is None else end_str, begin, limit))
+
+
+def sliptrap(
+    ddir: IpcsDdir, dump: IpcsDump
+) -> Optional[IpcsParsedResponse[Optional[str]]]:
     """
     Run ``LIST SLIPTRAP`` and return the SLIPTRAP string for the dump.
 
@@ -125,7 +217,9 @@ def ipl_time(ddir: IpcsDdir, dump: IpcsDump) -> IpcsParsedResponse[Optional[str]
         return IpcsParsedResponse(data=None, response=response)
 
 
-def select_all(ddir: IpcsDdir, dump: IpcsDump) -> IpcsParsedResponse[Optional[list[dict]]]:
+def select_all(
+    ddir: IpcsDdir, dump: IpcsDump
+) -> IpcsParsedResponse[Optional[list[dict]]]:
     """
     Run ``SELECT ALL`` and return a list of ASIDs on the system at dump time.
 
@@ -225,7 +319,9 @@ def storage_areas(ddir: IpcsDdir, dump: IpcsDump) -> IpcsParsedResponse[Optional
     )
 
 
-def asids_dumped(ddir: IpcsDdir, dump: IpcsDump) -> IpcsParsedResponse[Optional[list[str]]]:
+def asids_dumped(
+    ddir: IpcsDdir, dump: IpcsDump
+) -> IpcsParsedResponse[Optional[list[str]]]:
     """
     Run ``CBF RTCT`` and return the list of requested ASIDs that were dumped.
 
@@ -264,7 +360,9 @@ def asids_dumped(ddir: IpcsDdir, dump: IpcsDump) -> IpcsParsedResponse[Optional[
     return IpcsParsedResponse(data=asids, response=response)
 
 
-def opcode(ddir: IpcsDdir, dump: IpcsDump, instr: str) -> IpcsParsedResponse[Optional[str]]:
+def opcode(
+    ddir: IpcsDdir, dump: IpcsDump, instr: str
+) -> IpcsParsedResponse[Optional[str]]:
     """
     Run ``OPCODE`` and return the mnemonic for an instruction.
 

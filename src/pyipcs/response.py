@@ -112,6 +112,5 @@ class IpcsParsedResponse[T]:
 
     def __repr__(self) -> str:
         return (
-            f"IpcsParsedResponse(data={self._data!r}, "
-            f"response={self._response!r})"
+            f"IpcsParsedResponse(data={self._data!r}, " f"response={self._response!r})"
         )
