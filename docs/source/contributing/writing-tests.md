@@ -27,6 +27,7 @@ Key fixtures provided by `conftest.py`:
 | `ddir_dsname` | session | Dataset name for the general-purpose test DDIR (`<hlq>.TESTDDIR`) |
 | `dump_dsname` | session | Dump dataset name string from `--dump`, or `None` |
 | `dump_ddir_dsname` | session | Dataset name for the dump test DDIR (`<hlq>.DUMPDDIR`) |
+| `temp_dsname` | session | Dataset name for a temporary test data set (`<hlq>.TEMPDSN`). Tests create it as needed; it is deleted after each test |
 | `default_ddir` | function | Live `IpcsDdir` with no dump initialized; deleted after each test |
 | `dump` | function | `IpcsDump` wrapping the dataset provided via `--dump` |
 | `dump_ddir` | function | Live `IpcsDdir` with the dump already initialized |
@@ -37,7 +38,7 @@ Key fixtures provided by `conftest.py`:
 The test suite is designed to leave no leftover data sets on the system.
 
 - **Before the session** — `pytest_configure` deletes any pre-existing test data sets matching the configured names and HLQ patterns.
-- **After each test** — the `reset_state` fixture (autouse) deletes the default driver, custom driver, general-purpose DDIR, and any `PYIPCS.DDIR*` / `<hlq>.DDIR*` temp DDIRs.
+- **After each test** — the `reset_state` fixture (autouse) deletes the default driver, custom driver, temporary data set (`temp_dsname`), general-purpose DDIR, and any `PYIPCS.DDIR*` / `<hlq>.DDIR*` temp DDIRs.
 - **After the session** — the `environment` fixture (autouse) deletes the dump DDIR.
 
 If any data set cannot be deleted, `pytest.exit` is called and the session is aborted with a list of survivors.

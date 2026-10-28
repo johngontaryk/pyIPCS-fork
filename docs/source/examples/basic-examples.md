@@ -83,6 +83,40 @@ with IpcsDdir.temp_ddir() as ddir:
     print(f"Mnemonic: {mnemonic.data}")
 ```
 
+### Parsing Output with `find_field` and `rfind_field`
+
+`find_field` and `rfind_field` locate the text that follows a start string and return
+its `(begin, end)` indexes. `find_field` uses the first occurrence of the start string and
+`rfind_field` uses the last. The field ends after `length` characters, at the next
+`end_str`, or at the next space if neither is given. Use `start` and `end` to limit the
+part of the text that is searched.
+
+```python
+from pyipcs.ipcs import find_field, rfind_field
+
+text = "key=ABC def=XYZ key=123 end"
+
+begin, end = find_field(text, "key=")
+print(text[begin:end])  # ABC
+
+begin, end = rfind_field(text, "key=")
+print(text[begin:end])  # 123
+
+begin, end = find_field(text, "def=", length=2)
+print(text[begin:end])  # XY
+
+begin, end = find_field(text, "def=", end_str=" key")
+print(text[begin:end])  # XYZ
+```
+
+If the start string is not found, `(-1, -1)` is returned. If it is found but the end
+cannot be found, the end index is `-1`:
+
+```python
+find_field(text, "nope")             # (-1, -1)
+find_field(text, "def=", end_str="!")  # (12, -1)
+```
+
 ## Writing Subcommand Output to a File
 
 For large subcommand outputs, write directly to a file instead of buffering in memory:

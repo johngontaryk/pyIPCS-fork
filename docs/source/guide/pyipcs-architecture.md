@@ -85,10 +85,10 @@ data set exists and is a valid dump, then parses metadata from the dump header r
 
 ### `pyipcs.ipcs` — IPCS Utility Functions
 
-A module of higher-level utility functions that run common IPCS subcommands and return `IpcsParsedResponse` objects containing parsed results alongside the raw response.
+A module of higher-level utility functions, some of which run common IPCS subcommands and return `IpcsParsedResponse` objects containing parsed results alongside the raw response.
 
-**Functions include:** `is_dump`, `sliptrap`, `ipl_time`, `select_all`,
-`storage_areas`, `asids_dumped`, `opcode`
+**Functions include:** `is_dump`, `find_field`, `rfind_field`, `sliptrap`, `ipl_time`,
+`select_all`, `storage_areas`, `asids_dumped`, `opcode`
 
 ### `pyipcs.driver` — Driver Data Set
 
