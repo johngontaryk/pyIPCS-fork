@@ -3,6 +3,7 @@ Test various DDIR operations
 """
 
 import pytest
+from zoautil_py import datasets
 from pyipcs._util import check_dataset_exists
 from pyipcs.exceptions import DdirDeletedError
 
@@ -101,3 +102,34 @@ def test_ddir_dump_setdef_global(dump, dump_ddir):
     response = dump_ddir.setdef_global(dump=dump)
     assert response.rc < 8
     assert response.output.find(f"DSNAME('{dump.dsname}')") != -1
+
+
+def test_ddir_set_tasklib(temp_dsname, default_ddir):
+    """set_tasklib stores names and the property returns a copy."""
+    datasets.create(temp_dsname, dataset_type="PDS")
+    default_ddir.set_tasklib([temp_dsname])
+    assert default_ddir.tasklib == [temp_dsname]
+
+    # Mutating the returned copy does not affect the DDIR's state
+    copy = default_ddir.tasklib
+    copy.append("EXTRA")
+    assert default_ddir.tasklib == [temp_dsname]
+
+    response = default_ddir.run("SETDEF LIST")
+    assert response.rc < 8
+    assert response.output.find("LENGTH(4)") != -1
+
+    # Clear it
+    default_ddir.set_tasklib(None)
+    assert default_ddir.tasklib is None
+
+
+def test_ddir_tasklib(temp_dsname, default_ddir):
+    """An empty PDS set as tasklib doesn't break IPCS and output is still produced."""
+    datasets.create(temp_dsname, dataset_type="PDS")
+    default_ddir.set_tasklib([temp_dsname])
+    assert default_ddir.tasklib == [temp_dsname]
+
+    response = default_ddir.run("SETDEF LIST")
+    assert response.rc < 8
+    assert response.output.find("LENGTH(4)") != -1
